@@ -1276,13 +1276,27 @@ function persistDrafts(filePath, docBody) {
 /**
  * Rebuild the original markdown with [Answer]: lines updated to the current
  * textarea values (matched positionally so duplicate empty answers are safe).
+ *
+ * Uses the same standalone-marker logic as processAnswerMarkers: only matches
+ * [Answer]: that appears at the start of a line (possibly with leading
+ * whitespace), so occurrences inside instruction text (e.g. inside backticks
+ * or mid-sentence) are correctly skipped.
  */
 function rebuildMarkdown(originalContent, answers) {
+  // Matches [Answer]: only at the start of a line (with optional indentation).
+  // Group 1 = leading newline or "" (start-of-string), group 2 = indentation.
+  const STANDALONE = /(^|\n)([ \t]*)\[Answer\]:/;
+
   let out  = originalContent;
   let from = 0;
   for (const answer of answers) {
-    const pos = out.indexOf("[Answer]:", from);
-    if (pos === -1) break;
+    const slice = out.slice(from);
+    const match = STANDALONE.exec(slice);
+    if (!match) break;
+
+    // Absolute position of the '[' character in `out`
+    const pos = from + match.index + match[1].length + match[2].length;
+
     const lineEnd = out.indexOf("\n", pos);
     const end     = lineEnd === -1 ? out.length : lineEnd;
     const newLine = "[Answer]: " + answer;

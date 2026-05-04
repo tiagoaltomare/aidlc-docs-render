@@ -1,0 +1,21 @@
+{
+  "name": "aidlc-docs-render",
+  "version": "1.0.0",
+  "description": "Site estático que renderiza todos os arquivos `.md` dentro de `aidlc-docs/`\r com design inspirado no padrão AWS AIDLC (fases coloridas, navegação por seções,\r diagramas Mermaid, syntax highlight, TOC e busca).",
+  "main": "manifest.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiagoaltomare/aidlc-docs-render.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tiagoaltomare/aidlc-docs-render/issues"
+  },
+  "homepage": "https://github.com/tiagoaltomare/aidlc-docs-render#readme"
+}
