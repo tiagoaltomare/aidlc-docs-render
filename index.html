@@ -1113,7 +1113,11 @@ async function renderDoc(file) {
   const phase = file.phase || "overview";
   const meta  = PHASE[phase] || PHASE.overview;
   const normalizedContent = normalizeInlineOptionLines(file.content || "");
-  const html = marked.parse(normalizedContent);
+  const answerFields = extractAnswerFields(file.content || "");
+  const renderContent = answerFields.length > 0
+    ? injectAnswerPlaceholders(normalizedContent)
+    : normalizedContent;
+  const html = marked.parse(renderContent);
 
   const panel = document.getElementById("doc-panel");
   panel.innerHTML =
@@ -1157,8 +1161,8 @@ async function renderDoc(file) {
 
   // ── Answer fields: replace [Answer]: markers with editable textareas ──
   const docBody = panel.querySelector(".doc-body");
-  if (docBody && file.content.includes("[Answer]:")) {
-    const count = processAnswerMarkers(docBody, file);
+  if (docBody && answerFields.length > 0) {
+    const count = processAnswerMarkers(docBody, file, answerFields);
     if (count > 0) {
       const hdr = panel.querySelector(".doc-hdr");
       if (hdr) {
@@ -1184,56 +1188,43 @@ async function renderDoc(file) {
 
 // ─── ANSWER FIELDS ───────────────────────────────────────────────────────────
 
-function findStandaloneAnswerMarker(text) {
-  const match = /(^|\n)([ \t]*)\[Answer\]:/.exec(text);
-  if (!match) return -1;
-  return match.index + match[1].length + match[2].length;
+const STANDALONE_ANSWER_RE = /(^|\n)([ \t]*)\[Answer\]:(.*?)(?=\n|$)/g;
+
+function extractAnswerFields(markdown) {
+  const fields = [];
+  markdown.replace(STANDALONE_ANSWER_RE, (_match, _lineStart, _indent, answer) => {
+    fields.push({ value: answer.trim() });
+    return _match;
+  });
+  return fields;
+}
+
+function injectAnswerPlaceholders(markdown) {
+  let idx = 0;
+  return markdown.replace(STANDALONE_ANSWER_RE, (_match, lineStart) => {
+    const placeholder = `<div class="answer-field-slot" data-answer-idx="${idx}"></div>`;
+    idx += 1;
+    return `${lineStart}${placeholder}`;
+  });
 }
 
 /**
- * Walks the rendered doc body, finds every standalone [Answer]: marker in
- * editable text nodes, and replaces each one with a styled textarea that
- * persists drafts to localStorage so work is not lost when navigating
- * between docs. Returns the number of answer fields found.
+ * Replaces raw answer placeholders in the rendered doc with styled textareas
+ * and restores either persisted drafts or values extracted from the original
+ * markdown content. Returns the number of answer fields found.
  */
-function processAnswerMarkers(docBody, file) {
-  // Collect matching text nodes first (modifying the DOM while walking is unsafe)
-  const hits = [];
-  const walker = document.createTreeWalker(docBody, NodeFilter.SHOW_TEXT);
-  let node;
-  while ((node = walker.nextNode())) {
-    const parent = node.parentElement;
-    if (parent?.closest("pre, code")) continue;
-    if (findStandaloneAnswerMarker(node.nodeValue) !== -1) hits.push(node);
-  }
-  if (hits.length === 0) return 0;
+function processAnswerMarkers(docBody, file, answerFields) {
+  const slots = [...docBody.querySelectorAll(".answer-field-slot")];
+  if (slots.length === 0) return 0;
 
   // Load saved drafts (keyed by file path)
   let drafts = [];
   try { drafts = JSON.parse(localStorage.getItem("aidlc-ans-" + file.path) || "[]"); }
   catch (_) {}
 
-  hits.forEach((textNode, idx) => {
-    const raw       = textNode.nodeValue;
-    const markerPos = findStandaloneAnswerMarker(raw);
-    if (markerPos === -1) return;
-
-    // Text before the marker (e.g. leading whitespace or label text)
-    const before      = raw.slice(0, markerPos);
-    // Text after "[Answer]:" on the same line
-    const afterMarker = raw.slice(markerPos + "[Answer]:".length);
-    const lineBreak   = afterMarker.search(/\n/);
-    const sameLine    = lineBreak === -1 ? afterMarker : afterMarker.slice(0, lineBreak);
-    const afterLine   = lineBreak === -1 ? ""          : afterMarker.slice(lineBreak);
-
-    // Existing answer in file (trimmed); draft takes priority if present
-    const existing = sameLine.trim();
-    const value    = drafts[idx] !== undefined ? drafts[idx] : existing;
-
-    // ── Build replacement ──────────────────────────────────────────
-    const frag = document.createDocumentFragment();
-    if (before) frag.appendChild(document.createTextNode(before));
-
+  slots.forEach((slot, idx) => {
+    const existing = answerFields[idx]?.value || "";
+    const value = drafts[idx] !== undefined ? drafts[idx] : existing;
     const field = document.createElement("div");
     field.className = "answer-field";
 
@@ -1256,14 +1247,10 @@ function processAnswerMarkers(docBody, file) {
     });
 
     field.appendChild(ta);
-    frag.appendChild(field);
-
-    if (afterLine) frag.appendChild(document.createTextNode(afterLine));
-
-    textNode.parentNode.replaceChild(frag, textNode);
+    slot.replaceWith(field);
   });
 
-  return hits.length;
+  return slots.length;
 }
 
 /** Save all current textarea values to localStorage as a draft. */
