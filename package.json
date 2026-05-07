@@ -1,21 +1,117 @@
 {
   "name": "aidlc-docs-render",
+  "displayName": "AIDLC Docs Renderer",
+  "description": "VS Code extension foundation for rendering and editing AIDLC markdown workflows.",
   "version": "1.0.0",
-  "description": "Site estático que renderiza todos os arquivos `.md` dentro de `aidlc-docs/`\r com design inspirado no padrão AWS AIDLC (fases coloridas, navegação por seções,\r diagramas Mermaid, syntax highlight, TOC e busca).",
-  "main": "manifest.js",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "./dist/extension/index.js",
+  "engines": {
+    "vscode": "^1.117.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:aidlc.openNavigatorPanel",
+    "onCommand:aidlc.focusNavigatorView",
+    "onCommand:aidlc.selectDocsRoot",
+    "onCommand:aidlc.startGuidedSetup",
+    "onCommand:aidlc.manualRefresh",
+    "onCommand:aidlc.checkDeliveryReadiness",
+    "onView:aidlcNavigator.sideView"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "aidlc.openNavigatorPanel",
+        "title": "AIDLC: Open Navigator Panel",
+        "category": "AIDLC"
+      },
+      {
+        "command": "aidlc.focusNavigatorView",
+        "title": "AIDLC: Focus Navigator View",
+        "category": "AIDLC"
+      },
+      {
+        "command": "aidlc.selectDocsRoot",
+        "title": "AIDLC: Select Docs Root",
+        "category": "AIDLC"
+      },
+      {
+        "command": "aidlc.startGuidedSetup",
+        "title": "AIDLC: Start Guided Setup",
+        "category": "AIDLC"
+      },
+      {
+        "command": "aidlc.manualRefresh",
+        "title": "AIDLC: Refresh Runtime",
+        "category": "AIDLC"
+      },
+      {
+        "command": "aidlc.checkDeliveryReadiness",
+        "title": "AIDLC: Check Delivery Readiness",
+        "category": "AIDLC"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aidlcNavigator",
+          "title": "AIDLC",
+          "icon": "media/aidlc.svg"
+        }
+      ]
+    },
+    "views": {
+      "aidlcNavigator": [
+        {
+          "id": "aidlcNavigator.sideView",
+          "name": "Docs Navigator",
+          "type": "webview"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "aidlc.renderedPreview",
+        "displayName": "AIDLC Rendered Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node scripts/build.mjs",
+    "build:tests": "tsc -p tsconfig.test.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "package:check": "node scripts/package-check.mjs",
+    "test": "npm run build:tests && node --test dist-tests/**/*.test.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tiagoaltomare/aidlc-docs-render.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/tiagoaltomare/aidlc-docs-render/issues"
   },
-  "homepage": "https://github.com/tiagoaltomare/aidlc-docs-render#readme"
+  "homepage": "https://github.com/tiagoaltomare/aidlc-docs-render#readme",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.117.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "mermaid": "^11.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vscode-uri": "^3.1.0"
+  }
 }
