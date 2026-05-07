@@ -131,6 +131,7 @@ def build_manifest() -> int:
         "title":     title,
         "project":   project,
         "generated": datetime.now(timezone.utc).isoformat(),
+        "docs_root": str(DOCS_DIR),
         "files":     files,
     }
     MANIFEST.write_text(

@@ -4,6 +4,7 @@
   "description": "Site estático que renderiza todos os arquivos `.md` dentro de `aidlc-docs/`\r com design inspirado no padrão AWS AIDLC (fases coloridas, navegação por seções,\r diagramas Mermaid, syntax highlight, TOC e busca).",
   "main": "manifest.js",
   "scripts": {
+    "start": "python save-server.py --pick --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -2,7 +2,8 @@
 window.AIDLC_MANIFEST = {
   "title": "AIDLC Docs · site",
   "project": "site",
-  "generated": "2026-05-07T21:27:20.874532+00:00",
+  "generated": "2026-05-07T22:09:41.215832+00:00",
+  "docs_root": "C:\\Users\\tiagoa\\Source\\personal-projects\\ai-control-center\\aidlc-docs",
   "files": [
     {
       "path": "aidlc-state.md",
