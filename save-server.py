@@ -14,6 +14,7 @@ USAGE
 Then open: http://localhost:8765
 """
 
+import argparse
 import json
 import os
 import queue
@@ -38,6 +39,7 @@ WATCH_INTERVAL = 3   # seconds between filesystem polls
 # ────────────────────────────────────────────────────────────────────────────
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
+# DOCS_DIR is resolved at runtime in main() — do not use this module-level value directly.
 DOCS_DIR   = (SCRIPT_DIR / DOCS_ROOT).resolve()
 MANIFEST   = SCRIPT_DIR / "manifest.js"
 
@@ -274,10 +276,116 @@ class ThreadingServer(ThreadingMixIn, HTTPServer):
         super().handle_error(request, client_address)
 
 
+# ─── Folder picker ───────────────────────────────────────────────────────────
+
+def _pick_folder_dialog(initial_dir: str = "") -> str | None:
+    """Open a native folder-picker dialog using tkinter (if available)."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder = filedialog.askdirectory(
+            title="Selecione a pasta root de docs",
+            initialdir=initial_dir or os.getcwd(),
+        )
+        root.destroy()
+        return folder or None
+    except Exception as exc:
+        print(f"⚠  Não foi possível abrir o seletor de pasta: {exc}", file=sys.stderr)
+        return None
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="AIDLC Docs — Local Server",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  python save-server.py --watch                        # usa DOCS_ROOT do script\n"
+            "  python save-server.py --docs-root /caminho --watch   # digita o caminho\n"
+            "  python save-server.py --pick --watch                 # abre seletor de pasta\n"
+        ),
+    )
+    parser.add_argument(
+        "--docs-root", metavar="CAMINHO",
+        help="Caminho para a pasta root de docs (absoluto ou relativo ao diretório do script)",
+    )
+    parser.add_argument(
+        "--pick", action="store_true",
+        help="Abre um seletor de pasta nativo para indicar a docs root",
+    )
+    parser.add_argument(
+        "--watch", action="store_true",
+        help="Observa alterações e regenera o manifest com live reload",
+    )
+    return parser.parse_args()
+
+
+def _read_docs_root_from_manifest() -> Path | None:
+    """Read docs_root recorded in manifest.js by generate-manifest.py, if present."""
+    if not MANIFEST.exists():
+        return None
+    try:
+        text = MANIFEST.read_text(encoding="utf-8", errors="replace")
+        # manifest.js format: window.AIDLC_MANIFEST = { ... };
+        m = re.search(r"window\.AIDLC_MANIFEST\s*=\s*(\{.*\})", text, re.DOTALL)
+        if not m:
+            return None
+        data = json.loads(m.group(1))
+        raw = data.get("docs_root", "")
+        if raw:
+            p = Path(raw)
+            if p.exists():
+                return p.resolve()
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_docs_dir(args) -> Path:
+    """Determine and return the resolved docs root Path.
+
+    Priority:
+      1. --pick  (interactive dialog)
+      2. --docs-root  (explicit CLI arg)
+      3. docs_root stored in manifest.js by generate-manifest.py
+      4. DOCS_ROOT default from CONFIG block
+    """
+    default_dir = (SCRIPT_DIR / DOCS_ROOT).resolve()
+
+    if args.pick:
+        chosen = _pick_folder_dialog(initial_dir=str(default_dir))
+        if not chosen:
+            print("❌  Nenhuma pasta selecionada.", file=sys.stderr)
+            sys.exit(1)
+        return Path(chosen).resolve()
+
+    if args.docs_root:
+        candidate = Path(args.docs_root)
+        if not candidate.is_absolute():
+            candidate = SCRIPT_DIR / candidate
+        return candidate.resolve()
+
+    manifest_root = _read_docs_root_from_manifest()
+    if manifest_root:
+        return manifest_root
+
+    return default_dir
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    watch = "--watch" in sys.argv
+    global DOCS_DIR
+
+    args     = _parse_args()
+    DOCS_DIR = _resolve_docs_dir(args)
+
+    if not DOCS_DIR.exists():
+        print(f"❌  Pasta de docs não encontrada: {DOCS_DIR}", file=sys.stderr)
+        sys.exit(1)
 
     os.chdir(SCRIPT_DIR)   # serve files from _docs-viewer/
 
@@ -286,7 +394,7 @@ def main():
     print(f"AIDLC Docs  →  http://localhost:{PORT}")
     print(f"Docs root   →  {DOCS_DIR}")
     print(f"Manifest    →  {count} arquivos indexados")
-    if watch:
+    if args.watch:
         t = threading.Thread(target=_watch_loop, daemon=True)
         t.start()
         print(f"Watch       →  ativo (poll a cada {WATCH_INTERVAL}s, live reload via SSE)")

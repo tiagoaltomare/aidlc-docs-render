@@ -16,6 +16,7 @@ PORTABILITY
 Edit the CONFIG block below to adapt this to any project.
 """
 
+import argparse
 import os
 import json
 import re
@@ -54,6 +55,27 @@ OUTPUT_FILE = "manifest.js"
 # Seconds between filesystem polls in --watch mode.
 WATCH_INTERVAL = 3
 # ────────────────────────────────────────────────────────────────────────────
+
+
+# ─── FOLDER PICKER ─────────────────────────────────────────────────────────
+
+def pick_folder_dialog(initial_dir: str = "") -> str | None:
+    """Open a native folder-picker dialog using tkinter (if available)."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder = filedialog.askdirectory(
+            title="Selecione a pasta root de docs",
+            initialdir=initial_dir or os.getcwd(),
+        )
+        root.destroy()
+        return folder or None
+    except Exception as exc:
+        print(f"⚠  Não foi possível abrir o seletor de pasta: {exc}", file=sys.stderr)
+        return None
 
 
 # ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -163,6 +185,7 @@ def build_and_write(docs_dir: Path, output_path: Path) -> int:
         "title":     title,
         "project":   project_name,
         "generated": datetime.now(timezone.utc).isoformat(),
+        "docs_root": str(docs_dir),
         "files":     files,
     }
 
@@ -199,17 +222,65 @@ def snapshot(docs_dir: Path) -> dict:
 
 # ─── MAIN ───────────────────────────────────────────────────────────────────
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="AIDLC Docs — Manifest Generator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  python generate-manifest.py                          # usa DOCS_ROOT do script\n"
+            "  python generate-manifest.py --docs-root /caminho     # digita o caminho\n"
+            "  python generate-manifest.py --pick                   # abre seletor de pasta\n"
+            "  python generate-manifest.py --pick --watch           # seletor + modo watch\n"
+        ),
+    )
+    parser.add_argument(
+        "--docs-root", metavar="CAMINHO",
+        help="Caminho para a pasta root de docs (absoluto ou relativo ao diretório do script)",
+    )
+    parser.add_argument(
+        "--pick", action="store_true",
+        help="Abre um seletor de pasta nativo para indicar a docs root",
+    )
+    parser.add_argument(
+        "--watch", action="store_true",
+        help="Observa alterações e regenera o manifest automaticamente",
+    )
+    return parser.parse_args()
+
+
+def resolve_docs_dir(args, script_dir: Path) -> Path:
+    """Determine and return the resolved docs root Path."""
+    default_dir = (script_dir / DOCS_ROOT).resolve()
+
+    if args.pick:
+        chosen = pick_folder_dialog(initial_dir=str(default_dir))
+        if not chosen:
+            print("❌  Nenhuma pasta selecionada.", file=sys.stderr)
+            sys.exit(1)
+        return Path(chosen).resolve()
+
+    if args.docs_root:
+        candidate = Path(args.docs_root)
+        if not candidate.is_absolute():
+            candidate = script_dir / candidate
+        return candidate.resolve()
+
+    return default_dir
+
+
 def main():
+    args       = parse_args()
     script_dir = Path(__file__).parent.resolve()
-    docs_dir   = (script_dir / DOCS_ROOT).resolve()
+    docs_dir   = resolve_docs_dir(args, script_dir)
     output     = script_dir / OUTPUT_FILE
 
     if not docs_dir.exists():
-        print(f"❌  DOCS_ROOT not found: {docs_dir}", file=sys.stderr)
+        print(f"❌  Pasta de docs não encontrada: {docs_dir}", file=sys.stderr)
         sys.exit(1)
 
-    if "--watch" in sys.argv:
-        print(f"👀  Watching {docs_dir}")
+    if args.watch:
+        print(f"👀  Watching {docs_dir}  (docs root)")
         print(f"    Output  → {output}")
         print("    Press Ctrl+C to stop.\n")
         last_snap: dict = {}
@@ -228,8 +299,9 @@ def main():
     else:
         count = build_and_write(docs_dir, output)
         print(f"✅  manifest.js generated — {count} files indexed")
+        print(f"    Docs    → {docs_dir}")
         print(f"    Output  → {output}")
-        print(f"    Open    → aidlc-docs/_docs-viewer/index.html")
+        print(f"    Open    → {output.parent / 'index.html'}")
 
 
 if __name__ == "__main__":
