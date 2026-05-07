@@ -2,7 +2,7 @@
 window.AIDLC_MANIFEST = {
   "title": "AIDLC Docs · site",
   "project": "site",
-  "generated": "2026-05-07T19:52:53.562865+00:00",
+  "generated": "2026-05-07T21:27:20.874532+00:00",
   "files": [
     {
       "path": "aidlc-state.md",

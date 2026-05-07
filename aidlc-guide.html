@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI-DLC — Guia de Fases, Gates e Artefatos</title>
+<style>
+  :root {
+    --blue-700: #1D4ED8; --blue-100: #DBEAFE; --blue-50: #EFF6FF;
+    --green-700: #15803D; --green-100: #DCFCE7; --green-50: #F0FDF4;
+    --amber-700: #B45309; --amber-100: #FEF3C7;
+    --gray-800: #1F2937; --gray-700: #374151; --gray-500: #6B7280;
+    --gray-200: #E5E7EB; --gray-100: #F3F4F6; --gray-50: #F9FAFB;
+    --violet-50: #F5F3FF;
+    --dark-blue: #1E3A5F;
+    --orange-50: #FFF7ED; --orange-100: #FFEDD5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: var(--gray-800); background: #fff; line-height: 1.6; }
+
+  /* ── Navigation ── */
+  nav { background: var(--dark-blue); color: #fff; padding: 12px 32px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  nav strong { font-size: 16px; margin-right: 12px; }
+  nav a { color: #93C5FD; text-decoration: none; font-size: 13px; }
+  nav a:hover { color: #fff; }
+
+  /* ── Cover ── */
+  .cover { background: linear-gradient(135deg, var(--dark-blue) 0%, #2563EB 100%); color: #fff; text-align: center; padding: 80px 40px 64px; }
+  .cover h1 { font-size: 64px; font-weight: 900; letter-spacing: -2px; margin-bottom: 12px; }
+  .cover .subtitle { font-size: 22px; font-weight: 300; opacity: 0.9; margin-bottom: 8px; }
+  .cover .desc { font-size: 15px; opacity: 0.7; margin-top: 8px; }
+  .cover .badges { margin-top: 32px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 6px 16px; font-size: 13px; }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 48px 32px; }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 64px; }
+  h2.phase-title { font-size: 26px; font-weight: 800; padding: 14px 20px; border-radius: 10px; margin-bottom: 28px; display: flex; align-items: center; gap: 10px; }
+  h2.phase-title.blue { background: var(--blue-100); color: var(--blue-700); border-left: 5px solid var(--blue-700); }
+  h2.phase-title.green { background: var(--green-100); color: var(--green-700); border-left: 5px solid var(--green-700); }
+  h2.phase-title.amber { background: var(--amber-100); color: var(--amber-700); border-left: 5px solid var(--amber-700); }
+  h2.phase-title.dark { background: var(--gray-100); color: var(--dark-blue); border-left: 5px solid var(--dark-blue); }
+
+  h3.sub-title { font-size: 18px; font-weight: 700; color: var(--dark-blue); margin: 32px 0 12px; display: flex; align-items: center; gap: 8px; }
+  h3.sub-title::before { content: ''; display: inline-block; width: 4px; height: 20px; border-radius: 2px; background: currentColor; }
+
+  p.intro { color: var(--gray-700); margin-bottom: 20px; line-height: 1.7; }
+
+  /* ── Phase Card ── */
+  .phase-card { border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; margin-bottom: 36px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .phase-card-header { padding: 14px 20px; font-size: 17px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+  .phase-card-header.blue { background: var(--blue-700); }
+  .phase-card-header.green { background: var(--green-700); }
+  .phase-card-header.amber { background: var(--amber-700); }
+  .phase-card-header.gray { background: var(--gray-700); }
+
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .card-row { display: contents; }
+  .card-label { background: var(--gray-100); padding: 14px 16px; font-weight: 600; font-size: 13px; color: var(--gray-700); border-bottom: 1px solid var(--gray-200); border-right: 1px solid var(--gray-200); display: flex; align-items: flex-start; gap: 6px; }
+  .card-value { background: #fff; padding: 14px 16px; font-size: 13px; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); line-height: 1.65; }
+  .card-label.full { grid-column: 1; }
+  .card-value.full { grid-column: 2; }
+
+  .card-label.purpose  { background: #EFF6FF; }
+  .card-label.gate-in  { background: #FEF9C3; }
+  .card-label.gate-out { background: #FFEDD5; }
+  .card-label.artifacts{ background: var(--green-50); }
+  .card-label.roles    { background: var(--violet-50); }
+
+  /* ── Overview table ── */
+  .overview-table { width: 100%; border-collapse: collapse; margin: 20px 0 32px; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .overview-table th { background: var(--dark-blue); color: #fff; padding: 12px 16px; text-align: left; font-size: 13px; }
+  .overview-table td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--gray-200); }
+  .overview-table tr:last-child td { border-bottom: none; }
+  .overview-table tr.blue-row td { background: var(--blue-50); }
+  .overview-table tr.green-row td { background: var(--green-50); }
+  .overview-table tr.amber-row td { background: #FFFBEB; }
+  .overview-table tr:hover td { filter: brightness(0.97); }
+
+  /* ── Summary table ── */
+  .summary-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .summary-table th { background: var(--dark-blue); color: #fff; padding: 10px 12px; text-align: left; }
+  .summary-table td { padding: 9px 12px; border-bottom: 1px solid var(--gray-200); vertical-align: top; }
+  .summary-table tr:nth-child(odd) td { background: var(--gray-50); }
+  .summary-table tr:nth-child(even) td { background: #fff; }
+  .summary-table tr:hover td { background: #EFF6FF !important; }
+
+  /* ── Directory table ── */
+  .dir-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+  .dir-table th { background: var(--dark-blue); color: #fff; padding: 10px 14px; text-align: left; }
+  .dir-table td { padding: 9px 14px; border-bottom: 1px solid var(--gray-200); vertical-align: top; }
+  .dir-table td:first-child { font-family: 'Consolas', monospace; font-size: 12px; white-space: nowrap; }
+  .dir-table tr.inception-row td { background: var(--blue-50); }
+  .dir-table tr.construct-row td { background: var(--green-50); }
+  .dir-table tr.ops-row td { background: #FFFBEB; }
+
+  /* ── Principles ── */
+  .principles { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin: 20px 0; }
+  .principle-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 16px; background: var(--gray-50); }
+  .principle-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .principle-card h4 { font-size: 14px; font-weight: 700; color: var(--dark-blue); margin-bottom: 6px; }
+  .principle-card p { font-size: 13px; color: var(--gray-700); }
+
+  /* ── Tags ── */
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag.always { background: #D1FAE5; color: #065F46; }
+  .tag.cond  { background: #FEF3C7; color: #92400E; }
+  .tag.placeholder { background: #E5E7EB; color: #374151; }
+
+  /* ── TOC ── */
+  .toc { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 24px 28px; margin-bottom: 40px; }
+  .toc h3 { font-size: 16px; font-weight: 700; color: var(--dark-blue); margin-bottom: 14px; }
+  .toc ol { padding-left: 20px; line-height: 2; }
+  .toc li { font-size: 14px; }
+  .toc a { color: var(--blue-700); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Loop box ── */
+  .loop-box { background: var(--green-50); border: 2px dashed var(--green-700); border-radius: 10px; padding: 16px 20px; margin: 20px 0 28px; }
+  .loop-box h4 { color: var(--green-700); font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .loop-box ul { padding-left: 20px; font-size: 13px; line-height: 1.8; }
+
+  /* ── Input docs ── */
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0 28px; }
+  .input-card { border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .input-card-header { padding: 14px 18px; font-size: 15px; font-weight: 700; color: #fff; }
+  .input-card-header.vision { background: #7C3AED; }
+  .input-card-header.tech { background: #0369A1; }
+  .input-card-body { padding: 16px 18px; font-size: 13px; line-height: 1.7; }
+  .input-card-body h5 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--gray-500); margin: 12px 0 4px; letter-spacing: 0.5px; }
+  .input-card-body ul { padding-left: 18px; }
+  .input-card-body li { margin-bottom: 4px; }
+  .input-feed-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  .input-feed-table th { background: var(--dark-blue); color: #fff; padding: 8px 12px; text-align: left; }
+  .input-feed-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); vertical-align: top; }
+  .input-feed-table tr:nth-child(odd) td { background: var(--gray-50); }
+  @media (max-width: 700px) { .input-grid { grid-template-columns: 1fr; } }
+
+  /* ── Working guide ── */
+  .guide-section { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+  .guide-section h4 { font-size: 15px; font-weight: 700; color: var(--dark-blue); margin-bottom: 10px; }
+  .guide-section p { font-size: 13px; line-height: 1.7; color: var(--gray-700); margin-bottom: 10px; }
+  .guide-section ul, .guide-section ol { padding-left: 20px; font-size: 13px; line-height: 1.8; color: var(--gray-700); }
+  .code-block { background: #1E293B; color: #E2E8F0; padding: 12px 16px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 12px; margin: 10px 0; white-space: pre-wrap; overflow-x: auto; }
+  .tip-box { background: #EFF6FF; border-left: 4px solid var(--blue-700); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0; font-size: 13px; color: var(--gray-700); }
+  .tip-box strong { color: var(--blue-700); }
+  .warn-box { background: #FEF3C7; border-left: 4px solid var(--amber-700); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0; font-size: 13px; color: var(--gray-700); }
+  .warn-box strong { color: var(--amber-700); }
+  .guide-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .guide-tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; background: var(--gray-200); color: var(--gray-700); }
+  .guide-tab.active { background: var(--dark-blue); color: #fff; }
+  .guide-step { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--gray-200); }
+  .guide-step:last-child { border-bottom: none; }
+  .step-num { background: var(--dark-blue); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .step-content h5 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .step-content p { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+
+  /* ── Footer ── */
+  footer { background: var(--gray-100); border-top: 1px solid var(--gray-200); padding: 24px 32px; text-align: center; font-size: 12px; color: var(--gray-500); }
+  footer a { color: var(--blue-700); text-decoration: none; }
+
+  @media print {
+    nav { display: none; }
+    .phase-card { page-break-inside: avoid; }
+    .section { page-break-before: always; }
+  }
+  @media (max-width: 700px) {
+    .card-body { grid-template-columns: 1fr; }
+    .card-label { border-right: none; }
+    h2.phase-title { font-size: 20px; }
+    .cover h1 { font-size: 40px; }
+    .principles { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <strong>AI-DLC</strong>
+  <a href="#how-to-use">💡 Como Usar</a>
+  <a href="#overview">Visão Geral</a>
+  <a href="#pre-inception">📥 Inputs</a>
+  <a href="#inception">🔵 Inception</a>
+  <a href="#construction">🟢 Construction</a>
+  <a href="#operations">🟡 Operations</a>
+  <a href="#summary">Resumo</a>
+  <a href="#directory">Diretórios</a>
+</nav>
+
+<!-- Cover -->
+<div class="cover">
+  <h1>AI-DLC</h1>
+  <div class="subtitle">AI-Driven Development Life Cycle</div>
+  <div class="desc">Guia de Fases, Sub-Fases, Gates, Artefatos e Papéis Envolvidos</div>
+  <div class="badges">
+    <span class="badge">🔵 Inception Phase</span>
+    <span class="badge">🟢 Construction Phase</span>
+    <span class="badge">🟡 Operations Phase</span>
+    <span class="badge">github.com/awslabs/aidlc-workflows</span>
+    <span class="badge">Maio 2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Sumário</h3>
+    <ol>
+      <li><a href="#how-to-use">Como Usar o AI-DLC (Working with AI-DLC)</a></li>
+      <li><a href="#overview">Visão Geral do AI-DLC</a></li>
+      <li><a href="#pre-inception">Inputs Pré-INCEPTION (Vision Document &amp; Technical Environment)</a></li>
+      <li><a href="#inception">INCEPTION PHASE</a>
+        <ol>
+          <li><a href="#workspace-detection">Workspace Detection</a></li>
+          <li><a href="#reverse-engineering">Reverse Engineering</a></li>
+          <li><a href="#requirements-analysis">Requirements Analysis</a></li>
+          <li><a href="#user-stories">User Stories</a></li>
+          <li><a href="#workflow-planning">Workflow Planning</a></li>
+          <li><a href="#application-design">Application Design</a></li>
+          <li><a href="#units-generation">Units Generation</a></li>
+        </ol>
+      </li>
+      <li><a href="#construction">CONSTRUCTION PHASE</a>
+        <ol>
+          <li><a href="#functional-design">Functional Design</a></li>
+          <li><a href="#nfr-requirements">NFR Requirements</a></li>
+          <li><a href="#nfr-design">NFR Design</a></li>
+          <li><a href="#infrastructure-design">Infrastructure Design</a></li>
+          <li><a href="#code-generation">Code Generation</a></li>
+          <li><a href="#build-and-test">Build and Test</a></li>
+        </ol>
+      </li>
+      <li><a href="#operations">OPERATIONS PHASE</a></li>
+      <li><a href="#summary">Tabela Resumo</a></li>
+      <li><a href="#directory">Estrutura de Diretórios</a></li>
+      <li><a href="#references">Referências</a></li>
+    </ol>
+  </div>
+
+  <!-- ════════════════════════════ HOW TO USE ══════════════════════════════ -->
+  <div class="section" id="how-to-use">
+    <h2 class="phase-title dark">1. 💡 Como Usar o AI-DLC (Working with AI-DLC)</h2>
+    <p class="intro">Este guia cobre como interagir efetivamente com o AI Agent em cada estágio — do primeiro prompt ao código funcionando. Baseado em experiências reais de workshops com equipes que adotaram a metodologia.</p>
+
+    <!-- 8.1 General Rules -->
+    <h3 class="sub-title" style="color:var(--dark-blue)">1.1 Regras Gerais</h3>
+
+    <div class="guide-section">
+      <h4>🔇 Explorar sem alterar documentos</h4>
+      <p>Não envie perguntas exploratórias sem guardar com uma instrução de "não altere". O AI pode interpretar sua pergunta como uma mudança e atualizar documentos de design. Use o prefixo abaixo:</p>
+      <div class="code-block">Do not update any documents. Help me understand why [this decision] was made.</div>
+      <div class="code-block">Do not update any documents. For [component], is it reasonable to use [tech] here?</div>
+      <div class="code-block">Do not change anything. Assess the impact of [proposed change].</div>
+      <div class="tip-box"><strong>💡 Dica:</strong> Comece toda mensagem exploratória com "Do not update any documents." Você pode remover essa restrição quando estiver pronto para agir.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>📋 O fluxo Pergunta → Doc → Aprovação</h4>
+      <p>O AI-DLC nunca faz perguntas inline no chat — ele escreve perguntas em arquivos markdown e aguarda você preencher as respostas. Isso mantém um registro durável de cada decisão.</p>
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h5>AI cria o arquivo de perguntas</h5>
+          <p>Ex.: <code>aidlc-docs/inception/requirements/requirement-verification-questions.md</code> — o AI para e espera você responder.</p>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h5>Você preenche as tags [Answer]</h5>
+          <p>Use letra + label: <code>[Answer]: B — ECS Fargate (containerized)</code>. Combine opções quando aplicável: <code>[Answer]: B and C</code>. Adicione ressalvas: <code>[Answer]: B — migration is separate; include one-time data migration.</code> Use X para resposta customizada.</p>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h5>Notifique o AI que as respostas estão prontas</h5>
+          <div class="code-block">We have answered your clarification questions. Please re-read the file and proceed.</div>
+          <p>Peça explicitamente para <em>reler</em> o arquivo — garante que o AI carregue suas respostas do disco.</p>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h5>AI valida e avança</h5>
+          <p>O AI lê suas respostas, sinaliza ambiguidades restantes e prossegue para gerar o próximo artefato. Gates de aprovação sempre oferecem 2 opções: <strong>Request Changes</strong> ou <strong>Approve and Continue</strong>.</p>
+        </div>
+      </div>
+      <div class="tip-box"><strong>💡 Dica avançada:</strong> Se você tem documentação que já responde algumas perguntas: <em>"Analyze the rationale for each question. If a question has already been answered through the provided documentation, answer it yourself. Only ask me if it is still unclear."</em></div>
+    </div>
+
+    <div class="guide-section">
+      <h4>🧹 Gerenciamento de Contexto</h4>
+      <p>O AI-DLC depende de ter a cadeia completa de artefatos em contexto para gerar saídas consistentes. Contexto acumulado degrada a qualidade de forma sutil e difícil de diagnosticar.</p>
+      <p><strong>A regra central: limpe o contexto em cada ponto de decisão natural (gate).</strong></p>
+      <ul>
+        <li>Quando o AI pede para responder um arquivo de perguntas → responda, depois <strong>inicie contexto fresco</strong></li>
+        <li>Quando o AI apresenta um documento para aprovação → revise, depois <strong>inicie contexto fresco</strong></li>
+        <li>Se sua ferramenta oferece "compact context" no meio do workflow → <strong>sempre recuse</strong></li>
+      </ul>
+      <p><strong>Como retomar após reset de contexto:</strong></p>
+      <div class="code-block">Go to aidlc-docs/aidlc-state.md, find the first unchecked item,
+then go to the corresponding plan file and resume from that point.</div>
+      <div class="tip-box"><strong>💡 Dica:</strong> Faça commit e push de todas as mudanças antes de cada reset de contexto. Leva segundos e garante sempre um ponto de recuperação limpo.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>📦 Batching de Prompts</h4>
+      <p><strong>Quando duas mudanças são fortemente acopladas ao mesmo assunto:</strong> inclua as duas num único prompt.<br>
+      <strong>Quando duas mudanças são não-relacionadas:</strong> faça uma de cada vez.</p>
+      <p>Over-batching (combinar mudanças não-relacionadas) faz o AI perder foco e deixar detalhes passar. Under-batching (prompts separados para coisas intimamente relacionadas) adiciona round-trips desnecessários.</p>
+    </div>
+
+    <div class="guide-section">
+      <h4>🔍 Critiques Independentes</h4>
+      <p>O AI defenderá suas próprias decisões anteriores. Para avaliação imparcial de um artefato, peça uma crítica em um contexto fresco — onde o AI não tem memória de por que tomou aquelas decisões.</p>
+      <div class="code-block">Produce a critique document of [the requirements document / the component design].
+Do this in a new context separate from everything else.</div>
+    </div>
+
+    <!-- 1.2 Inception -->
+    <h3 class="sub-title" style="color:var(--blue-700)">1.2 Fase INCEPTION — Interações Específicas</h3>
+
+    <div class="guide-section">
+      <h4>🚀 Iniciando um projeto</h4>
+      <p>Com seus documentos de entrada prontos (Vision + Technical Environment):</p>
+      <div class="code-block">I want to start a new project. Please read [path to vision document] and
+[path to technical environment document], then begin the AIDLC workflow.</div>
+      <p>O AI escaneará o workspace, determinará greenfield vs. brownfield, e avançará para Requirements Analysis usando seus documentos como fonte primária.</p>
+    </div>
+
+    <div class="guide-section">
+      <h4>📝 Respondendo perguntas de Requirements Analysis</h4>
+      <ul>
+        <li><strong>Separe Full Vision do MVP explicitamente.</strong> Se o AI perguntar quais features incluir, nomeie-as. Se algo está fora do escopo, diga claramente.</li>
+        <li><strong>Declare decisões de "não" deliberadas.</strong> <code>D — no caching required at this time</code> sinaliza intenção. Uma resposta vazia convida o AI a fazer uma escolha especulativa.</li>
+        <li><strong>Descreva abordagens em fases inline.</strong> <code>X — simple role-based workflow now; replace with external workflow engine when available</code></li>
+      </ul>
+      <div class="tip-box"><strong>💡 Extensões de Segurança:</strong> Durante Requirements Analysis, o AI perguntará se você quer aplicar regras de extensão de segurança. Para aplicações de produção, escolha Sim. Para protótipos, Não é adequado. Essa decisão é registrada e aplicada em toda a Construction Phase.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>🔧 Outras interações úteis na Inception</h4>
+      <p><strong>Mover feature para backlog mid-stream:</strong></p>
+      <div class="code-block">We are going to backlog the [feature name] capability for the current release.
+Please remove it from the component design and flag the related user stories as backlogged.</div>
+      <p><strong>Verificar impacto upstream após mudança de design:</strong></p>
+      <div class="code-block">Now review the previous steps — user stories and requirements — to ensure
+this change does not require updates to any of those documents.</div>
+      <div class="tip-box"><strong>💡 Regra standing de back-propagation:</strong> Configure no início da fase: <em>"Every time you update a document, check whether the change impacts the requirements document and user stories, and prompt me if it does."</em> Isso cria uma rede de segurança automática.</div>
+      <p><strong>Review paralelo por times:</strong></p>
+      <div class="code-block">Restrict your edits to the files under your team's control. When all teams are done,
+we will ask the AI to review all changes and confirm there are no conflicts.
+Then we will ask it to review impacts to user stories and requirements.</div>
+      <div class="code-block">We had [N] independent groups editing component design files. Please review all files
+and report any conflicts or inconsistencies. Do not edit the files — produce a report.</div>
+    </div>
+
+    <!-- 1.3 Construction -->
+    <h3 class="sub-title" style="color:var(--green-700)">1.3 Fase CONSTRUCTION — Interações Específicas</h3>
+
+    <div class="guide-section">
+      <h4>🏗️ Transição Design → Code Generation</h4>
+      <div class="code-block">We have completed component design review. We are ready for code creation.
+Please use the following directory and source code structure:
+[reference an existing service or folder structure].
+Use this pattern for APIs. For the UI, follow the [Vue.js composables/components/store]
+directory structure. Please ask any questions you have before proceeding.</div>
+      <p>Convidar perguntas antes de gerar resolve ambiguidades no plano em vez de no meio da criação de arquivos.</p>
+    </div>
+
+    <div class="guide-section">
+      <h4>💻 Code Generation — Boas Práticas</h4>
+      <p><strong>Parte 1 — Planning:</strong> Antes de aprovar o plano, verifique:</p>
+      <ul>
+        <li>Todos os arquivos estão no lugar certo (código de aplicação na raiz do workspace, nunca em <code>aidlc-docs/</code>)</li>
+        <li>Os passos cobrem tudo que os documentos de design especificaram</li>
+        <li>Projetos brownfield listam arquivos existentes a modificar (não cópias novas ao lado)</li>
+      </ul>
+      <div class="tip-box"><strong>💡 Bibliotecas internas:</strong> Antes de aprovar o plano, injete seus requisitos de biblioteca interna: <em>"In addition to my answers, you must use the following libraries from our starter project: [list each]. Explain why and when each should be used."</em></div>
+
+      <p style="margin-top:12px"><strong>Correção direcionada:</strong></p>
+      <div class="code-block">The [endpoint] should use [correct parameter], not [incorrect parameter].
+Please update the [component name] accordingly.</div>
+
+      <p><strong>Brownfield — arquivo duplicado indesejado:</strong></p>
+      <div class="code-block">I see [ClassName_modified.java] alongside [ClassName.java]. Please merge the changes
+into the original file and delete the duplicate.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>🔄 Back-propagação após Code Generation</h4>
+      <p>Mudanças feitas durante a geração de código precisam ser propagadas de volta aos documentos de design. Faça isso como uma varredura deliberada após o polimento do código:</p>
+      <div class="code-block">When you have finished polishing the code, review each unit's final design files
+and propagate any changes back up the chain to requirements and user stories.
+Make a plan for how to do this step by step before executing.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>🧪 Build and Test — Dicas</h4>
+      <p><strong>Injetar tooling de teste no momento certo</strong> (não no início do projeto — pode se perder nas etapas intermediárias):</p>
+      <div class="code-block">At the functional test generation step, inject the following instruction:
+generate functional tests using the [test management system] format described
+in this document: [attach specification].</div>
+      <p><strong>Escopo de cobertura de testes unitários:</strong></p>
+      <div class="code-block">When generating unit tests, exclude third-party external dependencies from
+code coverage calculations. Require a minimum of 80% coverage on internal code paths only.</div>
+    </div>
+
+    <!-- 1.4 Never Vibe Code -->
+    <h3 class="sub-title" style="color:#DC2626">1.4 ⚠️ Nunca "Vibe Code"</h3>
+
+    <div class="warn-box">
+      <strong>⛔ Regra fundamental:</strong> Nunca edite diretamente arquivos de código gerado para correções rápidas — isso cria drift entre o código e os documentos de design. O AI-DLC usará os documentos de design como fonte de verdade em toda operação subsequente. Se o código e os documentos divergem, a próxima geração causa confusão e retrabalho.
+    </div>
+
+    <div class="guide-section">
+      <h4>O jeito correto de fazer uma mudança</h4>
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h5>Descreva o problema sem tocar em nada</h5>
+          <div class="code-block">Do not update any documents yet. I have discovered issue [X].
+Review the design and help me understand where this needs to be addressed.</div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h5>Corrija o documento de design primeiro</h5>
+          <div class="code-block">Please update [specific design document] to reflect [the fix].
+Then check whether any upstream documents — requirements, user stories — also need updating.</div>
+        </div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h5>Regenere apenas o código afetado</h5>
+          <div class="code-block">The design for [unit name] has been updated. Please re-run code generation
+for the affected files only.</div>
+        </div>
+      </div>
+
+      <p style="margin-top:14px"><strong>Se você teve que editar diretamente (emergência):</strong></p>
+      <div class="code-block">We made a temporary direct edit to [file] to unblock the team.
+The fix was [description]. Please update [design document] to reflect this
+and verify no other documents are inconsistent.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>🛡️ Regras standing que previnem drift (configure no início da Construction Phase)</h4>
+      <div class="code-block">Every time you update a document, check whether the change impacts the
+requirements document and user stories, and prompt me if it does.</div>
+      <div class="code-block">When you make a design decision during code generation, always make sure
+the documentation reflects this change before proceeding.</div>
+    </div>
+
+    <div class="guide-section">
+      <h4>📁 Mantenha relatórios fora do aidlc-docs/</h4>
+      <p>Relatórios voltados a humanos (diagramas de arquitetura, sumários, apresentações) <strong>não devem ser salvos em <code>aidlc-docs/</code></strong> — serão carregados como artefatos em estágios subsequentes, inflando o token count e confundindo o AI sobre o que é input de design autoritativo. Use uma pasta separada:</p>
+      <div class="code-block">Pause the process. Start a new context. Read [report specification file]
+and produce the report based on the current state of the AIDLC artifacts.
+Save the output to a reports/ folder, not aidlc-docs/.</div>
+    </div>
+  </div><!-- /how-to-use -->
+
+  <!-- ═══════════════════════════════ OVERVIEW ═══════════════════════════════ -->
+  <div class="section" id="overview">
+    <h2 class="phase-title dark">2. Visão Geral do AI-DLC</h2>
+    <p class="intro">O <strong>AI-DLC (AI-Driven Development Life Cycle)</strong> é uma metodologia de desenvolvimento de software guiada por IA que se adapta à complexidade do projeto, mantém padrões de qualidade e garante que o ser humano permaneça no controle do processo. É dividida em três fases principais:</p>
+
+    <table class="overview-table">
+      <thead><tr><th>Fase</th><th>Foco</th><th>Objetivo</th></tr></thead>
+      <tbody>
+        <tr class="blue-row"><td>🔵 <strong>INCEPTION</strong></td><td>O QUE e POR QUÊ</td><td>Planejamento, levantamento de requisitos e decisões arquiteturais</td></tr>
+        <tr class="green-row"><td>🟢 <strong>CONSTRUCTION</strong></td><td>COMO construir</td><td>Design detalhado, implementação NFR e geração de código</td></tr>
+        <tr class="amber-row"><td>🟡 <strong>OPERATIONS</strong></td><td>COMO operar</td><td>Implantação e monitoramento (expansão futura / placeholder)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="principles">
+      <div class="principle-card"><div class="icon">🧠</div><h4>Execução Adaptativa</h4><p>Apenas os estágios que agregam valor ao projeto específico são executados — o workflow se adapta ao trabalho.</p></div>
+      <div class="principle-card"><div class="icon">👁️</div><h4>Planejamento Transparente</h4><p>Um plano de execução é sempre apresentado e aprovado pelo usuário antes do início de qualquer estágio.</p></div>
+      <div class="principle-card"><div class="icon">🙋</div><h4>Human in the Loop</h4><p>O agente propõe, o humano aprova. Aprovação explícita é exigida em cada estágio crítico — sem autoproceder.</p></div>
+      <div class="principle-card"><div class="icon">📝</div><h4>Trilha de Auditoria</h4><p>Todos os inputs do usuário e outputs do AI são registrados em audit.md com timestamps ISO 8601.</p></div>
+      <div class="principle-card"><div class="icon">🔌</div><h4>Agnóstico de Plataforma</h4><p>Funciona com qualquer IDE ou agente: Claude Code, Amazon Q, Cursor, Kiro, GitHub Copilot, OpenAI Codex.</p></div>
+      <div class="principle-card"><div class="icon">🧩</div><h4>Extensível</h4><p>Sistema de extensões permite adicionar regras de segurança, compliance e padrões organizacionais sobre o core.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ PRE-INCEPTION INPUTS ═══════════════════════ -->
+  <div class="section" id="pre-inception">
+    <h2 class="phase-title dark">3. 📥 Inputs Pré-INCEPTION — Documentos de Entrada</h2>
+    <p class="intro">Antes de iniciar o workflow AI-DLC, a metodologia recomenda fortemente a preparação de dois documentos de entrada. Eles reduzem drasticamente o número de perguntas de clarificação na Requirements Analysis e garantem que o AI Agent parta do contexto real da equipe — não de suposições.</p>
+
+    <div class="tip-box"><strong>💡 Dica principal:</strong> Cada lacuna preenchida nesses documentos é uma pergunta a menos durante a Requirements Analysis. Quanto mais contexto você fornecer, mais preciso e eficiente será o workflow.</div>
+
+    <div class="input-grid">
+      <!-- Vision Document -->
+      <div class="input-card">
+        <div class="input-card-header vision">📄 Vision Document Guide</div>
+        <div class="input-card-body">
+          <p>Define os <strong>objetivos de negócio</strong>, resultados esperados e limites de escopo <em>antes</em> de entrar no AI-DLC. É a principal entrada para a Inception Phase.</p>
+
+          <h5>Quando escrever</h5>
+          <ul>
+            <li>Antes de qualquer projeto novo ou iniciativa maior</li>
+            <li>Ao propor um novo produto, conjunto de features ou plataforma</li>
+            <li>Quando há pivô de direção de produto existente</li>
+            <li>Quando múltiplos stakeholders precisam se alinhar antes do desenvolvimento</li>
+          </ul>
+
+          <h5>Estrutura do documento</h5>
+          <ul>
+            <li><strong>1. Executive Summary</strong> — 3–5 frases: o que é, para quem, por quê existe</li>
+            <li><strong>2. Business Context</strong> — Problem Statement, Business Drivers, Target Users, Constraints, Success Metrics</li>
+            <li><strong>3. Full Scope Vision</strong> — visão aspiracional completa do produto; feature areas, integrações, user journeys, roadmap</li>
+            <li><strong>4. MVP Scope</strong> — menor conjunto que entrega valor: features IN scope, features OUT of scope explícitas, critérios de sucesso testáveis, Definition of Done</li>
+            <li><strong>5. Risks and Dependencies</strong> — riscos com likelihood/impact/mitigation, dependências externas, open questions</li>
+          </ul>
+
+          <h5>Mínimo viável para começar rápido</h5>
+          <ul>
+            <li>1 parágrafo: o que você está construindo e para quem</li>
+            <li>Lista de features do MVP em escopo</li>
+            <li>Lista de features explicitamente FORA do escopo</li>
+            <li>Open questions (ambiguidades já conhecidas)</li>
+          </ul>
+
+          <div class="tip-box" style="margin-top:10px"><strong>📌</strong> As open questions alimentam diretamente a Requirements Analysis como ambiguidades pré-declaradas, resolvidas antes de surpreender o design.</div>
+
+          <h5>Diretrizes de escrita</h5>
+          <ul>
+            <li>✅ Seja específico e mensurável ("reduzir tempo de processamento em 30%")</li>
+            <li>✅ Separe claramente Full Vision do MVP</li>
+            <li>✅ Inclua listas de "fora do escopo" — são tão valiosas quanto as listas de escopo</li>
+            <li>❌ Não use linguagem vaga: "world-class", "seamless", "intuitive"</li>
+            <li>❌ Não inclua detalhes de tecnologia/implementação (isso vai no Technical Environment)</li>
+            <li>❌ Não pule a seção de MVP</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Technical Environment Document -->
+      <div class="input-card">
+        <div class="input-card-header tech">⚙️ Technical Environment Document Guide</div>
+        <div class="input-card-body">
+          <p>Define <strong>tooling técnico, padrões, restrições e preferências</strong> que governam como o projeto é construído. É a referência vinculante durante a Construction Phase.</p>
+
+          <p>Aplica-se a dois contextos: <strong>Greenfield</strong> (do zero — todas as escolhas estão abertas) e <strong>Brownfield</strong> (codebase existente — escolhas são restritas pelo que existe).</p>
+
+          <h5>Estrutura do documento</h5>
+          <ul>
+            <li><strong>1. Project Technical Summary</strong> — nome, tipo, cloud provider, deployment model, tamanho e experiência da equipe</li>
+            <li><strong>2. Programming Languages</strong> — Required / Permitted / Prohibited (com razão para cada proibição)</li>
+            <li><strong>3. Frameworks and Libraries</strong> — Required / Preferred / Prohibited (com alternativa preferida), processo de aprovação de nova lib</li>
+            <li><strong>4. Cloud Environment</strong> — provider, regiões, Service Allow List (com constraints), Service Disallow List (com alternativa), processo de aprovação</li>
+            <li><strong>5. Preferred Technologies and Patterns</strong> — padrões de arquitetura, API design standards, data patterns, messaging, frontend</li>
+            <li><strong>6. Security Requirements</strong> — auth/authz, data protection, network security, secrets management, compliance framework (OWASP, NIST, etc.)</li>
+            <li><strong>7. Testing Requirements</strong> — tipos de teste, coverage mínimo, tooling por tipo, CI/CD gates</li>
+            <li><strong>8. Example &amp; Template Code</strong> — código de exemplo por padrão (endpoint, repositório, teste, IaC) que o AI usará como referência durante Code Generation</li>
+            <li><strong>9. Brownfield-Specific</strong> (se aplicável) — inventário atual, regras de migração (Keep/Migrate/Remove), regras de coexistência</li>
+          </ul>
+
+          <h5>Mínimo viável para começar rápido</h5>
+          <ul>
+            <li>Linguagem e versão, gerenciador de pacotes</li>
+            <li>Web framework, cloud provider, deployment model, test framework</li>
+            <li>Tabela de bibliotecas proibidas (com <em>razão</em> e alternativa recomendada)</li>
+            <li>Segurança básica (auth method, secrets policy)</li>
+            <li>Ao menos 1 exemplo de: endpoint típico, função e teste</li>
+          </ul>
+
+          <div class="tip-box" style="margin-top:10px"><strong>🏆 Maior valor:</strong> Os <strong>exemplos de código</strong> são a adição de maior impacto além do básico — dão ao AI um padrão concreto a seguir durante a Code Generation em vez de inventar o próprio.</div>
+
+          <div class="warn-box"><strong>⚠️ A tabela de bibliotecas proibidas importa mais que uma lista simples.</strong> As colunas de razão e alternativa ensinam ao AI-DLC <em>por que</em> uma lib é proibida, levando a melhores decisões de substituição.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-title" style="color:var(--dark-blue)">Como os documentos alimentam cada estágio do AI-DLC</h3>
+    <table class="input-feed-table">
+      <thead>
+        <tr>
+          <th>Seção do Documento de Entrada</th>
+          <th>Estágio AI-DLC</th>
+          <th>Como é Utilizado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Vision:</strong> Executive Summary</td><td>Workspace Detection</td><td>Contexto inicial para classificação do projeto (greenfield/brownfield)</td></tr>
+        <tr><td><strong>Vision:</strong> Business Context</td><td>Requirements Analysis</td><td>Direciona perguntas de clarificação e profundidade dos requisitos</td></tr>
+        <tr><td><strong>Vision:</strong> Full Scope Vision</td><td>User Stories, Application Design</td><td>Informa criação de personas e identificação de componentes</td></tr>
+        <tr><td><strong>Vision:</strong> MVP Scope</td><td>Workflow Planning</td><td>Determina quais estágios executar e limites de escopo</td></tr>
+        <tr><td><strong>Vision:</strong> Features In/Out of Scope</td><td>Code Generation</td><td>Define o que é implementado na iteração atual</td></tr>
+        <tr><td><strong>Vision:</strong> Risks and Dependencies</td><td>Todos os estágios</td><td>Informa avaliação de risco e tratamento de erros</td></tr>
+        <tr><td><strong>Vision:</strong> Open Questions</td><td>Requirements Analysis</td><td>Tornam-se perguntas de clarificação nos arquivos de questões</td></tr>
+        <tr><td><strong>Tech:</strong> Project Technical Summary</td><td>Workspace Detection</td><td>Contexto para classificação do projeto</td></tr>
+        <tr><td><strong>Tech:</strong> Programming Languages</td><td>Code Generation</td><td>Seleção de linguagem e restrições de versão</td></tr>
+        <tr><td><strong>Tech:</strong> Frameworks and Libraries</td><td>Code Generation, NFR Design</td><td>Seleção de dependências e verificação de bibliotecas proibidas</td></tr>
+        <tr><td><strong>Tech:</strong> Cloud Services Allow/Disallow</td><td>Infrastructure Design</td><td>Limites de seleção de serviços de cloud</td></tr>
+        <tr><td><strong>Tech:</strong> Preferred Patterns</td><td>Application Design, Functional Design</td><td>Decisões de arquitetura e padrões de design</td></tr>
+        <tr><td><strong>Tech:</strong> Security Requirements</td><td>NFR Requirements, NFR Design</td><td>Seleção de padrões de segurança e verificações de compliance</td></tr>
+        <tr><td><strong>Tech:</strong> Testing Requirements</td><td>Code Generation, Build and Test</td><td>Estratégia de testes, tooling e targets de cobertura</td></tr>
+        <tr><td><strong>Tech:</strong> Example Code</td><td>Code Generation</td><td>Referência de padrões durante a geração de código</td></tr>
+        <tr><td><strong>Tech:</strong> Brownfield Inventory</td><td>Reverse Engineering, Workflow Planning</td><td>Decisões de migração e regras de coexistência</td></tr>
+      </tbody>
+    </table>
+  </div><!-- /pre-inception -->
+
+  <!-- ═══════════════════════════════ INCEPTION ═════════════════════════════ -->
+  <div class="section" id="inception">
+    <h2 class="phase-title blue">4. 🔵 INCEPTION PHASE</h2>
+    <p class="intro">Determina <strong>O QUE</strong> construir e <strong>POR QUÊ</strong>. Abrange desde a detecção do workspace até a decomposição do sistema em unidades de trabalho mensuráveis.</p>
+
+    <!-- 2.1 Workspace Detection -->
+    <h3 class="sub-title" id="workspace-detection" style="color:var(--blue-700)">2.1 Workspace Detection <span class="tag always">SEMPRE</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">🔍 Workspace Detection — Análise do Estado do Workspace</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Determinar o estado do workspace: verificar se já existe um projeto AI-DLC em andamento (retomada de sessão) ou iniciar novo. Classifica o projeto como <strong>Greenfield</strong> (sem código existente) ou <strong>Brownfield</strong> (com código existente), o que determina o próximo estágio.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value"><strong>SEMPRE executado</strong> — é o primeiro estágio de qualquer workflow AI-DLC. Não tem pré-requisitos.</div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Automático, sem aprovação</strong> — este estágio é apenas informativo. Avança automaticamente para Reverse Engineering (brownfield sem artefatos) ou Requirements Analysis (greenfield ou com artefatos existentes).</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>aidlc-docs/aidlc-state.md</code> — criado com tipo de projeto, estado do workspace, caminho raiz e regra de localização de código<br>
+          • Entrada inicial no <code>audit.md</code> com o input completo do usuário e timestamp
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (papel principal — executa varredura e análise automática)<br>
+          • <strong>Developer / Product Owner</strong> (fornece contexto inicial via requisição)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.2 Reverse Engineering -->
+    <h3 class="sub-title" id="reverse-engineering" style="color:var(--blue-700)">2.2 Reverse Engineering <span class="tag cond">CONDICIONAL</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">🔬 Reverse Engineering — Análise do Codebase Existente</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Analisar a base de código existente (brownfield) e gerar artefatos abrangentes de documentação: visão de negócio, arquitetura, estrutura de código, APIs, tecnologias e qualidade. Esses artefatos servem de contexto para todos os estágios subsequentes.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> projeto Brownfield detectado <em>E</em> sem artefatos anteriores de RE (ou artefatos desatualizados).<br>
+          <strong>Skip se:</strong> projeto Greenfield, ou artefatos de RE existentes e ainda válidos.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Aprovação explícita obrigatória</strong> — o usuário revisa os artefatos gerados e pode solicitar alterações ou aprovar e avançar para Requirements Analysis. <em>Não há avanço automático.</em></div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>business-overview.md</code> — visão de negócio, transações e dicionário<br>
+          • <code>architecture.md</code> — diagrama de arquitetura e descrição de componentes<br>
+          • <code>code-structure.md</code> — estrutura, padrões de design, inventário de arquivos<br>
+          • <code>api-documentation.md</code> — endpoints REST e APIs internas com modelos de dados<br>
+          • <code>component-inventory.md</code> — inventário completo de pacotes/componentes<br>
+          • <code>technology-stack.md</code> — linguagens, frameworks e ferramentas<br>
+          • <code>dependencies.md</code> — dependências internas e externas com diagrama Mermaid<br>
+          • <code>code-quality-assessment.md</code> — cobertura de testes, dívida técnica, padrões<br>
+          • <code>reverse-engineering-timestamp.md</code> — metadados e checklist de artefatos gerados
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (papel principal — analisa codebase e gera documentação)<br>
+          • <strong>Software Architect</strong> (revisa artefatos e valida precisão da arquitetura)<br>
+          • <strong>Tech Lead / Senior Developer</strong> (valida precisão técnica da documentação)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.3 Requirements Analysis -->
+    <h3 class="sub-title" id="requirements-analysis" style="color:var(--blue-700)">2.3 Requirements Analysis <span class="tag always">SEMPRE</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">📋 Requirements Analysis — Levantamento Adaptativo de Requisitos</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Levantar, analisar e documentar requisitos funcionais e não-funcionais. Identifica intenção do usuário, tipo de requisição (nova feature, bug fix, refactoring, etc.), escopo estimado e complexidade. Garante que todas as ambiguidades sejam eliminadas antes do planejamento. Também apresenta perguntas de opt-in para extensões (segurança, compliance).</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>SEMPRE executado</strong>, com profundidade adaptativa:<br>
+          • <strong>Minimal:</strong> requisição simples e clara — apenas documenta intenção<br>
+          • <strong>Standard:</strong> complexidade normal — requisitos funcionais e não-funcionais<br>
+          • <strong>Comprehensive:</strong> alta complexidade/risco — requisitos detalhados com rastreabilidade
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate duplo obrigatório:</strong><br>
+          1. Usuário deve responder todas as perguntas em <code>requirement-verification-questions.md</code> (tags [Answer])<br>
+          2. Nenhum avanço até ambiguidades resolvidas via follow-up questions<br>
+          3. Aprovação final do documento de requisitos antes de avançar</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>requirement-verification-questions.md</code> — perguntas com tags [Answer] respondidas pelo usuário<br>
+          • <code>requirements.md</code> — documento completo de requisitos funcionais e não-funcionais, com análise de intenção, tipo, escopo e complexidade<br>
+          • Configuração de extensões em <code>aidlc-state.md</code> (tabela Extension Configuration)<br>
+          • Atualização do <code>aidlc-state.md</code> e registro no <code>audit.md</code>
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (assume papel de Product Owner — formula e valida requisitos)<br>
+          • <strong>Business Stakeholders</strong> (respondem às perguntas de clarificação)<br>
+          • <strong>Developer / Tech Lead</strong> (fornecem contexto técnico quando necessário)<br>
+          • <strong>End Users</strong> (indiretamente, através das histórias e personas)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.4 User Stories -->
+    <h3 class="sub-title" id="user-stories" style="color:var(--blue-700)">2.4 User Stories <span class="tag cond">CONDICIONAL</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">📚 User Stories — Narrativas Centradas no Usuário</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Traduzir requisitos de negócio em narrativas centradas no usuário, com personas bem definidas e critérios de aceite claros (critério INVEST). Aumenta o alinhamento entre equipes, fornece especificações testáveis e reduz riscos de implementação incorreta.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Alta prioridade (sempre executa):</strong> novas funcionalidades para o usuário, mudanças em fluxos existentes, múltiplas personas, APIs customer-facing, lógica de negócio complexa, projetos cross-team.<br><br>
+          <strong>Skip apenas para:</strong> refatoração pura sem impacto ao usuário, bug fixes simples e isolados, mudanças de infraestrutura sem efeito no front-end, melhorias em ferramentas de desenvolvedor. <em>Em caso de dúvida, inclua o estágio.</em>
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value">
+          <strong>Duas aprovações separadas obrigatórias:</strong><br>
+          • <strong>Parte 1 (Planning):</strong> usuário responde perguntas no plano; ambiguidades resolvidas antes de gerar<br>
+          • <strong>Parte 2 (Generation):</strong> artefatos gerados (stories + personas) aguardam aprovação final
+        </div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>user-stories-assessment.md</code> — justificativa documentada para execução do estágio<br>
+          • <code>story-generation-plan.md</code> — plano com abordagem escolhida e perguntas [Answer]<br>
+          • <code>stories.md</code> — histórias de usuário no formato INVEST com critérios de aceite por história<br>
+          • <code>personas.md</code> — arquétipos de usuário com características e motivações<br>
+          • Atualização do <code>aidlc-state.md</code> e registro no <code>audit.md</code>
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (assume papel de Product Owner — cria histórias e personas)<br>
+          • <strong>Business Stakeholders / Patrocinadores</strong> (validam histórias e critérios de aceite)<br>
+          • <strong>UX Designer</strong> (contribui com personas e fluxos de usuário)<br>
+          • <strong>QA Engineer</strong> (revisa testabilidade dos critérios de aceite)<br>
+          • <strong>Developers</strong> (estimam complexidade e negociam escopo das histórias)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.5 Workflow Planning -->
+    <h3 class="sub-title" id="workflow-planning" style="color:var(--blue-700)">2.5 Workflow Planning <span class="tag always">SEMPRE</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">📊 Workflow Planning — Plano de Execução Completo</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Determinar quais fases executar e criar um plano de execução abrangente. Realiza análise detalhada de impacto de mudança, avaliação de risco e mapeamento de dependências entre componentes. Gera visualização Mermaid do fluxo completo e documenta justificativas para cada decisão de EXECUTE/SKIP.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value"><strong>SEMPRE executado</strong> — ocorre após Requirements Analysis (e User Stories, se aplicável). Nenhum pré-requisito adicional.</div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Aprovação obrigatória do plano</strong> — usuário revisa o plano de execução, pode adicionar estágios marcados como SKIP ou solicitar modificações. Aprovação explícita antes de avançar para o próximo estágio definido no plano.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>execution-plan.md</code> contendo:<br>
+          &nbsp;&nbsp;- Análise de impacto de mudança (user-facing, structural, data model, API, NFR)<br>
+          &nbsp;&nbsp;- Avaliação de risco: Low / Medium / High / Critical<br>
+          &nbsp;&nbsp;- Mapa de dependências entre componentes (brownfield)<br>
+          &nbsp;&nbsp;- Estratégia de atualização de módulos (sequential/parallel/hybrid)<br>
+          &nbsp;&nbsp;- Visualização Mermaid do fluxo com estágios EXECUTE/SKIP coloridos<br>
+          &nbsp;&nbsp;- Lista completa de estágios com rationale para cada decisão<br>
+          • <code>aidlc-state.md</code> com plano completo e critérios de sucesso<br>
+          • Registro no <code>audit.md</code>
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (papel principal — analisa contexto e determina plano ótimo)<br>
+          • <strong>Solution Architect</strong> (revisa decisões de escopo e impacto técnico)<br>
+          • <strong>Project Manager</strong> (valida cronograma e prioridades do projeto)<br>
+          • <strong>Product Owner</strong> (aprova o plano de execução e alinha com visão de produto)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.6 Application Design -->
+    <h3 class="sub-title" id="application-design" style="color:var(--blue-700)">2.6 Application Design <span class="tag cond">CONDICIONAL</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">🏗️ Application Design — Design de Alto Nível de Componentes</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Identificar e definir os principais componentes funcionais, suas responsabilidades, interfaces de alto nível e dependências. Projeta a camada de serviço para orquestração. <em>Nota: lógica de negócio detalhada é definida no Functional Design da CONSTRUCTION PHASE.</em></div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> novos componentes/serviços são necessários; métodos e regras precisam ser definidos; design de service layer é requerido; dependências precisam ser esclarecidas.<br>
+          <strong>Skip se:</strong> mudanças dentro de componentes existentes sem novos componentes ou métodos.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate duplo:</strong> usuário responde perguntas no plano (design de componentes, métodos, serviços e dependências); todas ambiguidades resolvidas; aprovação final dos artefatos gerados.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>application-design-plan.md</code> — plano com perguntas [Answer] respondidas<br>
+          • <code>components.md</code> — definição de componentes e responsabilidades<br>
+          • <code>component-methods.md</code> — assinaturas de métodos e interfaces (alto nível)<br>
+          • <code>services.md</code> — definições de serviços e padrões de orquestração<br>
+          • <code>component-dependency.md</code> — matriz de dependências e padrões de comunicação<br>
+          • <code>application-design.md</code> — documento consolidado de todos os artefatos acima<br>
+          • Atualização do <code>aidlc-state.md</code> e registro no <code>audit.md</code>
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (assume papel de Software Architect — define estrutura de componentes)<br>
+          • <strong>Tech Lead / Senior Developer</strong> (valida decisões de design e limites de componentes)<br>
+          • <strong>Product Owner</strong> (alinha design com requisitos de negócio)<br>
+          • <strong>Domain Experts</strong> (contribuem com conhecimento de domínio de negócio)
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.7 Units Generation -->
+    <h3 class="sub-title" id="units-generation" style="color:var(--blue-700)">2.7 Units Generation <span class="tag cond">CONDICIONAL</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header blue">🔧 Units Generation — Decomposição em Unidades de Trabalho</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Decompor o sistema em unidades de trabalho gerenciáveis com limites claros e rastreabilidade de histórias. Para microsserviços: cada unidade torna-se um serviço implantável independentemente. Para monolitos: unidade única com módulos lógicos. Define a sequência de desenvolvimento da CONSTRUCTION PHASE.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> decomposição em múltiplas unidades é necessária; múltiplos serviços/módulos; sistema complexo. <strong>Pré-requisito:</strong> Application Design concluído.<br>
+          <strong>Skip se:</strong> unidade única simples; nenhuma decomposição necessária.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value">
+          <strong>Duas aprovações separadas:</strong><br>
+          • <strong>Parte 1 (Planning):</strong> perguntas de decomposição respondidas e ambiguidades resolvidas<br>
+          • <strong>Parte 2 (Generation):</strong> artefatos de unidades aprovados antes de avançar à CONSTRUCTION
+        </div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>unit-of-work-plan.md</code> — plano de decomposição com perguntas [Answer]<br>
+          • <code>unit-of-work.md</code> — definição de cada unidade com responsabilidades e estratégia de organização de código<br>
+          • <code>unit-of-work-dependency.md</code> — matriz de dependências entre unidades<br>
+          • <code>unit-of-work-story-map.md</code> — mapeamento de histórias de usuário para unidades<br>
+          • Atualização do <code>aidlc-state.md</code> e registro no <code>audit.md</code>
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (assume papel de Solution Architect — decompõe o sistema)<br>
+          • <strong>Tech Lead</strong> (valida limites de unidade e dependências técnicas)<br>
+          • <strong>Team Leads</strong> (contribuem com alinhamento de equipe e ownership de serviços)<br>
+          • <strong>DevOps Engineer</strong> (contribui com requisitos de implantação por unidade)
+        </div>
+      </div>
+    </div>
+  </div><!-- /inception -->
+
+  <!-- ═══════════════════════════════ CONSTRUCTION ═══════════════════════════ -->
+  <div class="section" id="construction">
+    <h2 class="phase-title green">5. 🟢 CONSTRUCTION PHASE</h2>
+    <p class="intro">Determina <strong>COMO</strong> construir. Executa um loop completo de design + código para cada unidade de trabalho. Após todas as unidades, executa Build and Test unificado.</p>
+
+    <div class="loop-box">
+      <h4>🔄 Loop por Unidade de Trabalho</h4>
+      <ul>
+        <li>Para cada unidade: Functional Design → NFR Requirements → NFR Design → Infrastructure Design → Code Generation</li>
+        <li>Cada unidade é completada integralmente antes de avançar para a próxima</li>
+        <li>Após TODAS as unidades: Build and Test (executado uma única vez ao final)</li>
+      </ul>
+    </div>
+
+    <!-- 3.1 Functional Design -->
+    <h3 class="sub-title" id="functional-design" style="color:var(--green-700)">3.1 Functional Design <span class="tag cond">CONDICIONAL por unidade</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">🔧 Functional Design — Design de Lógica de Negócio por Unidade</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Design detalhado da lógica de negócio por unidade, tecnologicamente agnóstico. Modela entidades de domínio, regras de negócio, algoritmos, fluxos de dados e cenários de erro. Baseia-se no Application Design da INCEPTION. Quando inclui frontend, detalha hierarquia de componentes UI, props/state e interações.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> novos modelos de dados; lógica de negócio complexa; regras de negócio precisam de design detalhado. <strong>Pré-requisito:</strong> Units Generation concluído.<br>
+          <strong>Skip se:</strong> mudanças de lógica simples; nenhuma nova lógica de negócio.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate obrigatório com 2 opções fixas:</strong> "Solicitar Alterações" ou "Continuar para o Próximo Estágio". <em>Nenhuma terceira opção é permitida — prevenção de comportamento emergente do AI.</em></div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>{unit-name}-functional-design-plan.md</code> — plano com perguntas [Answer]<br>
+          • <code>business-logic-model.md</code> — modelo de lógica de negócio da unidade<br>
+          • <code>business-rules.md</code> — regras de negócio, validações e restrições detalhadas<br>
+          • <code>domain-entities.md</code> — entidades de domínio, relacionamentos e atributos<br>
+          • <code>frontend-components.md</code> (se aplicável) — hierarquia UI, props/state, fluxos de interação
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (Software Engineer / Domain Expert — projeta lógica de negócio)<br>
+          • <strong>Tech Lead</strong> (valida lógica e aderência ao design de alto nível)<br>
+          • <strong>Business Analyst</strong> (confirma regras de negócio com stakeholders)<br>
+          • <strong>QA Engineer</strong> (revisa cenários de teste e edge cases)<br>
+          • <strong>UX Designer</strong> (quando frontend components aplicável)
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.2 NFR Requirements -->
+    <h3 class="sub-title" id="nfr-requirements" style="color:var(--green-700)">3.2 NFR Requirements <span class="tag cond">CONDICIONAL por unidade</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">📊 NFR Requirements — Requisitos Não-Funcionais por Unidade</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Determinar os requisitos não-funcionais da unidade e definir as decisões de tech stack. Abrange escalabilidade, performance, disponibilidade, segurança, confiabilidade e manutenibilidade. As decisões de NFR guiam diretamente o NFR Design.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> requisitos de performance existem; considerações de segurança necessárias; preocupações de escalabilidade; seleção de tech stack necessária. <strong>Pré-requisito:</strong> Functional Design concluído.<br>
+          <strong>Skip se:</strong> setup NFR existente é suficiente; nenhum novo NFR; mudanças simples.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate obrigatório com 2 opções fixas:</strong> "Solicitar Alterações" ou "Continuar para o Próximo Estágio". Aprovação explícita exigida.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>{unit-name}-nfr-requirements-plan.md</code> — plano com perguntas [Answer]<br>
+          • <code>nfr-requirements.md</code> — requisitos de escalabilidade, performance, disponibilidade, segurança, confiabilidade, manutenibilidade e usabilidade<br>
+          • <code>tech-stack-decisions.md</code> — decisões de stack tecnológica com justificativas detalhadas
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (Solutions Architect — define e analisa NFRs)<br>
+          • <strong>DevOps / Platform Engineer</strong> (contribui com requisitos operacionais e SLAs)<br>
+          • <strong>Security Engineer</strong> (define requisitos de segurança e compliance)<br>
+          • <strong>Performance Engineer</strong> (define SLAs e benchmarks de performance)<br>
+          • <strong>Product Owner</strong> (alinha expectativas de negócio com capacidade técnica)
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.3 NFR Design -->
+    <h3 class="sub-title" id="nfr-design" style="color:var(--green-700)">3.3 NFR Design <span class="tag cond">CONDICIONAL por unidade</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">🎨 NFR Design — Padrões de Design para Requisitos Não-Funcionais</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Incorporar os requisitos não-funcionais ao design da unidade através de padrões arquiteturais e componentes lógicos. Define padrões de resiliência (retry, circuit breaker, fallback), escalabilidade (sharding, partitioning), performance (caching, async) e segurança. Os componentes lógicos definidos aqui guiam o Infrastructure Design.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> NFR Requirements foi executado E padrões NFR precisam ser incorporados ao design.<br>
+          <strong>Skip se:</strong> nenhum NFR Requirements; NFR Requirements foi ignorado.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate obrigatório com 2 opções fixas:</strong> "Solicitar Alterações" ou "Continuar para o Próximo Estágio". Aprovação explícita exigida.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>{unit-name}-nfr-design-plan.md</code> — plano com perguntas [Answer]<br>
+          • <code>nfr-design-patterns.md</code> — padrões de design por categoria: resiliência, escalabilidade, performance, segurança<br>
+          • <code>logical-components.md</code> — componentes lógicos de infraestrutura (filas, caches, circuit breakers, load balancers) e padrões de integração
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (Solutions Architect — aplica padrões NFR ao design)<br>
+          • <strong>Software Architect</strong> (valida padrões de design aplicados e sua adequação)<br>
+          • <strong>DevOps / SRE Engineer</strong> (revisa componentes de resiliência e observabilidade)<br>
+          • <strong>Security Architect</strong> (revisa padrões e controles de segurança)
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.4 Infrastructure Design -->
+    <h3 class="sub-title" id="infrastructure-design" style="color:var(--green-700)">3.4 Infrastructure Design <span class="tag cond">CONDICIONAL por unidade</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">🏢 Infrastructure Design — Mapeamento para Infraestrutura Real</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Mapear componentes de software lógicos (definidos no NFR Design) para serviços reais de infraestrutura em ambientes de implantação (AWS, Azure, GCP, on-premise). Define serviços de compute, storage, messaging, networking, monitoramento e alertas para cada unidade.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value">
+          <strong>Executa se:</strong> serviços de infraestrutura precisam de mapeamento; arquitetura de implantação necessária; recursos de cloud precisam ser especificados. <strong>Pré-requisito:</strong> Functional Design (NFR Design recomendado).<br>
+          <strong>Skip se:</strong> nenhuma mudança de infraestrutura; infraestrutura já definida.
+        </div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Gate obrigatório com 2 opções fixas:</strong> "Solicitar Alterações" ou "Continuar para Code Generation". Aprovação explícita exigida.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>{unit-name}-infrastructure-design-plan.md</code> — plano com perguntas [Answer]<br>
+          • <code>infrastructure-design.md</code> — mapeamento de componentes lógicos para serviços reais de cloud (compute, storage, messaging, networking, monitoramento)<br>
+          • <code>deployment-architecture.md</code> — arquitetura de implantação com decisões e justificativas<br>
+          • <code>shared-infrastructure.md</code> (se aplicável) — recursos de infraestrutura compartilhados entre unidades
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (Cloud/Infrastructure Architect — mapeia para serviços de cloud)<br>
+          • <strong>DevOps / Platform Engineer</strong> (especifica e valida recursos de infraestrutura)<br>
+          • <strong>Security Engineer</strong> (valida configurações de rede, IAM e segurança)<br>
+          • <strong>FinOps Engineer</strong> (avalia custo dos recursos de cloud propostos)<br>
+          • <strong>Solutions Architect</strong> (alinha com arquitetura de referência da organização)
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.5 Code Generation -->
+    <h3 class="sub-title" id="code-generation" style="color:var(--green-700)">3.5 Code Generation <span class="tag always">SEMPRE por unidade</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">💻 Code Generation — Geração de Código, Testes e Artefatos</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Gerar código completo, testes unitários e artefatos de implantação para cada unidade, seguindo um plano explícito com rastreabilidade total para histórias de usuário. Em projetos brownfield, modifica arquivos existentes in-place (nunca cria cópias com sufixos _modified). Garante elementos amigáveis a automação de testes (data-testid em UI).</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value"><strong>SEMPRE executado para cada unidade</strong> — é o estágio central da CONSTRUCTION PHASE. Requer que os estágios de design da unidade estejam concluídos.</div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value">
+          <strong>Duas aprovações separadas:</strong><br>
+          • <strong>Parte 1 (Planning):</strong> plano detalhado com checkboxes e rastreabilidade de histórias aprovado antes de gerar<br>
+          • <strong>Parte 2 (Generation):</strong> código gerado revisado e aprovado antes de avançar para próxima unidade ou Build &amp; Test
+        </div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>{unit-name}-code-generation-plan.md</code> — plano detalhado com checkboxes por step<br>
+          • <strong>Código da aplicação</strong> (na raiz do workspace — NUNCA em aidlc-docs/):<br>
+          &nbsp;&nbsp;- Camada de lógica de negócio + testes unitários<br>
+          &nbsp;&nbsp;- Camada API (REST/GraphQL/gRPC) + testes unitários<br>
+          &nbsp;&nbsp;- Camada de repositório/persistência + testes unitários<br>
+          &nbsp;&nbsp;- Componentes frontend + testes (se aplicável, com data-testid)<br>
+          &nbsp;&nbsp;- Scripts de migração de banco de dados<br>
+          &nbsp;&nbsp;- Artefatos de implantação (Dockerfile, IaC, scripts)<br>
+          &nbsp;&nbsp;- Documentação técnica (README, API docs)<br>
+          • <strong>Documentação</strong> em <code>aidlc-docs/construction/{unit-name}/code/</code> (apenas resumos markdown)<br>
+          • <code>aidlc-state.md</code> com histórias marcadas como concluídas [x]
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>AI Agent</strong> (Software Engineer — gera código seguindo o plano)<br>
+          • <strong>Tech Lead</strong> (revisa qualidade, padrões e aderência ao design)<br>
+          • <strong>QA Engineer</strong> (verifica cobertura e qualidade dos testes)<br>
+          • <strong>Security Engineer</strong> (revisa segurança do código gerado)<br>
+          • <strong>DevOps Engineer</strong> (valida artefatos de implantação e scripts IaC)
+        </div>
+      </div>
+    </div>
+
+    <!-- 3.6 Build and Test -->
+    <h3 class="sub-title" id="build-and-test" style="color:var(--green-700)">3.6 Build and Test <span class="tag always">SEMPRE — após todas as unidades</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header green">🔨 Build and Test — Estratégia Abrangente de Build e Testes</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Gerar instruções completas de build e execução de testes para todas as unidades combinadas. Define estratégia de testes multicamada: unitários, integração, performance, contratos (microsserviços), segurança e end-to-end. Prepara o projeto para a fase de Operations.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value"><strong>SEMPRE executado</strong> — ocorre após Code Generation de <em>todas</em> as unidades estar concluído.</div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value"><strong>Aprovação obrigatória</strong> antes de avançar para Operations. Usuário revisa o sumário de build e test e confirma prontidão.</div>
+        <div class="card-label artifacts">📄 Artefatos Gerados</div>
+        <div class="card-value">
+          • <code>build-instructions.md</code> — pré-requisitos, passos de build, troubleshooting<br>
+          • <code>unit-test-instructions.md</code> — execução de testes unitários e cobertura esperada<br>
+          • <code>integration-test-instructions.md</code> — cenários de integração entre unidades/serviços<br>
+          • <code>performance-test-instructions.md</code> (se aplicável) — testes de carga/stress, SLAs<br>
+          • <code>contract-test-instructions.md</code> (para microsserviços) — validação de contratos de API<br>
+          • <code>security-test-instructions.md</code> — vulnerability scanning, testes de autenticação/autorização<br>
+          • <code>e2e-test-instructions.md</code> — fluxos completos de usuário<br>
+          • <code>build-and-test-summary.md</code> — sumário consolidado com status de build e todos os testes
+        </div>
+        <div class="card-label roles">👥 Papéis Envolvidos</div>
+        <div class="card-value">
+          • <strong>QA Engineer</strong> (papel central — define e executa estratégia de testes)<br>
+          • <strong>DevOps / Build Engineer</strong> (gerencia pipeline de build e CI/CD)<br>
+          • <strong>Performance Engineer</strong> (conduz testes de carga e stress)<br>
+          • <strong>Security Engineer</strong> (conduz testes e scanning de segurança)<br>
+          • <strong>Tech Lead</strong> (revisa resultados e aprova prontidão para produção)<br>
+          • <strong>Product Owner</strong> (valida que critérios de aceite foram atendidos)
+        </div>
+      </div>
+    </div>
+  </div><!-- /construction -->
+
+  <!-- ═══════════════════════════════ OPERATIONS ═════════════════════════════ -->
+  <div class="section" id="operations">
+    <h2 class="phase-title amber">6. 🟡 OPERATIONS PHASE</h2>
+    <p class="intro">Determina COMO implantar e operar o sistema. Atualmente é um <strong>placeholder para expansão futura</strong>. Todas as atividades de build e teste são tratadas na CONSTRUCTION PHASE.</p>
+
+    <h3 class="sub-title" id="operations-stage" style="color:var(--amber-700)">4.1 Operations <span class="tag placeholder">PLACEHOLDER</span></h3>
+    <div class="phase-card">
+      <div class="phase-card-header amber">🚀 Operations — Implantação e Operações (Expansão Futura)</div>
+      <div class="card-body">
+        <div class="card-label purpose">🎯 Propósito</div>
+        <div class="card-value">Gerenciar implantação em produção, monitoramento contínuo e operações do sistema. Esta fase representa o ciclo DevOps completo, fechando o loop de feedback para o desenvolvimento. Atualmente reservada para expansão futura da metodologia.</div>
+        <div class="card-label gate-in">🔀 Condição de Execução</div>
+        <div class="card-value"><strong>PLACEHOLDER</strong> — nenhum estágio ativo atualmente. Status atual: reservado para expansão futura.</div>
+        <div class="card-label gate-out">⛔ Gate de Saída</div>
+        <div class="card-value">A ser definido nas versões futuras da metodologia.</div>
+        <div class="card-label artifacts">📄 Expansão Planejada</div>
+        <div class="card-value">
+          • Plano e automação de implantação (CI/CD pipelines, blue-green, canary)<br>
+          • Configuração de monitoramento e observabilidade (CloudWatch, Datadog, etc.)<br>
+          • Procedimentos de resposta a incidentes (runbooks, playbooks)<br>
+          • Checklists de prontidão para produção<br>
+          • Workflows de manutenção, suporte e on-call<br>
+          • Estratégias de rollback e disaster recovery
+        </div>
+        <div class="card-label roles">👥 Papéis Planejados</div>
+        <div class="card-value">
+          • <strong>DevOps / SRE Engineer</strong> (papel principal na fase futura)<br>
+          • <strong>Platform Engineer</strong> (gerencia plataforma de execução)<br>
+          • <strong>Security Operations Engineer</strong> (monitoramento de segurança)<br>
+          • <strong>Incident Response Team</strong> (resposta a incidentes)<br>
+          • <strong>Product Owner</strong> (validação final de prontidão para produção)
+        </div>
+      </div>
+    </div>
+  </div><!-- /operations -->
+
+  <!-- ═══════════════════════════════ SUMMARY TABLE ═══════════════════════════ -->
+  <div class="section" id="summary">
+    <h2 class="phase-title dark">7. Tabela Resumo por Sub-Fase</h2>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Sub-Fase</th>
+          <th>Execução</th>
+          <th>Fase</th>
+          <th>Gate de Saída</th>
+          <th>Artefatos Chave</th>
+          <th>Papéis Chave</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:var(--blue-50)!important"><td><strong>Workspace Detection</strong></td><td><span class="tag always">SEMPRE</span></td><td>🔵 INCEPTION</td><td>Automático (sem aprovação)</td><td>aidlc-state.md</td><td>AI Agent, Developer</td></tr>
+        <tr><td><strong>Reverse Engineering</strong></td><td><span class="tag cond">CONDICIONAL</span></td><td>🔵 INCEPTION</td><td>Aprovação explícita</td><td>9 documentos de análise</td><td>AI Agent, Architect, Tech Lead</td></tr>
+        <tr style="background:var(--blue-50)!important"><td><strong>Requirements Analysis</strong></td><td><span class="tag always">SEMPRE</span></td><td>🔵 INCEPTION</td><td>Perguntas + aprovação</td><td>requirements.md</td><td>AI Agent (PO), Stakeholders</td></tr>
+        <tr><td><strong>User Stories</strong></td><td><span class="tag cond">CONDICIONAL</span></td><td>🔵 INCEPTION</td><td>Plan + Generation aprovados</td><td>stories.md, personas.md</td><td>AI Agent (PO), UX, QA</td></tr>
+        <tr style="background:var(--blue-50)!important"><td><strong>Workflow Planning</strong></td><td><span class="tag always">SEMPRE</span></td><td>🔵 INCEPTION</td><td>Plano aprovado</td><td>execution-plan.md</td><td>AI Agent, Architect, PM, PO</td></tr>
+        <tr><td><strong>Application Design</strong></td><td><span class="tag cond">CONDICIONAL</span></td><td>🔵 INCEPTION</td><td>Perguntas + aprovação</td><td>components.md, services.md</td><td>AI Agent (Architect), Tech Lead</td></tr>
+        <tr style="background:var(--blue-50)!important"><td><strong>Units Generation</strong></td><td><span class="tag cond">CONDICIONAL</span></td><td>🔵 INCEPTION</td><td>Plan + Generation aprovados</td><td>unit-of-work.md</td><td>AI Agent (Architect), Team Lead</td></tr>
+        <tr style="background:var(--green-50)!important"><td><strong>Functional Design</strong></td><td><span class="tag cond">COND/unidade</span></td><td>🟢 CONSTRUCTION</td><td>2 opções fixas</td><td>business-rules.md, domain-entities.md</td><td>AI Agent (Engineer), BA, QA</td></tr>
+        <tr><td><strong>NFR Requirements</strong></td><td><span class="tag cond">COND/unidade</span></td><td>🟢 CONSTRUCTION</td><td>2 opções fixas</td><td>nfr-requirements.md, tech-stack.md</td><td>AI Agent (Arch), Security, DevOps</td></tr>
+        <tr style="background:var(--green-50)!important"><td><strong>NFR Design</strong></td><td><span class="tag cond">COND/unidade</span></td><td>🟢 CONSTRUCTION</td><td>2 opções fixas</td><td>nfr-design-patterns.md</td><td>AI Agent (Arch), SRE, Security Arch</td></tr>
+        <tr><td><strong>Infrastructure Design</strong></td><td><span class="tag cond">COND/unidade</span></td><td>🟢 CONSTRUCTION</td><td>2 opções fixas</td><td>infrastructure-design.md</td><td>Cloud Architect, DevOps, FinOps</td></tr>
+        <tr style="background:var(--green-50)!important"><td><strong>Code Generation</strong></td><td><span class="tag always">SEMPRE/unidade</span></td><td>🟢 CONSTRUCTION</td><td>Plan + Generation aprovados</td><td>Código + testes + IaC + docs</td><td>AI Agent (Engineer), Tech Lead, QA</td></tr>
+        <tr><td><strong>Build and Test</strong></td><td><span class="tag always">SEMPRE</span></td><td>🟢 CONSTRUCTION</td><td>Aprovação antes de Operations</td><td>build-and-test-summary.md</td><td>QA, DevOps, Security, PO</td></tr>
+        <tr style="background:#FFFBEB!important"><td><strong>Operations</strong></td><td><span class="tag placeholder">PLACEHOLDER</span></td><td>🟡 OPERATIONS</td><td>A definir</td><td>A definir (expansão futura)</td><td>SRE, DevOps, SecOps</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════ DIRECTORY ══════════════════════════════ -->
+  <div class="section" id="directory">
+    <h2 class="phase-title dark">8. Estrutura de Diretórios Gerada (aidlc-docs/)</h2>
+    <p class="intro">Todos os artefatos são gerados dentro de <code>aidlc-docs/</code> na raiz do projeto. O <strong>código da aplicação NUNCA</strong> é colocado nessa pasta — apenas documentação markdown.</p>
+
+    <table class="dir-table">
+      <thead><tr><th>Caminho</th><th>Conteúdo</th></tr></thead>
+      <tbody>
+        <tr><td>aidlc-docs/aidlc-state.md</td><td>Estado global do workflow — fases, progresso, configuração de extensões e localização do código</td></tr>
+        <tr><td>aidlc-docs/audit.md</td><td>Trilha de auditoria completa — todos os inputs/outputs com timestamps ISO 8601 (nunca sobrescrito)</td></tr>
+        <tr class="inception-row"><td>aidlc-docs/inception/plans/</td><td>Planos de execução de cada estágio da INCEPTION PHASE</td></tr>
+        <tr class="inception-row"><td>aidlc-docs/inception/reverse-engineering/</td><td>9 artefatos do Reverse Engineering (somente projetos brownfield)</td></tr>
+        <tr class="inception-row"><td>aidlc-docs/inception/requirements/</td><td>requirements.md e requirement-verification-questions.md</td></tr>
+        <tr class="inception-row"><td>aidlc-docs/inception/user-stories/</td><td>stories.md, personas.md e user-stories-assessment.md</td></tr>
+        <tr class="inception-row"><td>aidlc-docs/inception/application-design/</td><td>components.md, component-methods.md, services.md, component-dependency.md, application-design.md, unit-of-work*.md</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/plans/</td><td>Planos de execução de cada estágio e unidade da CONSTRUCTION PHASE</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/{unit-name}/functional-design/</td><td>business-logic-model.md, business-rules.md, domain-entities.md, frontend-components.md</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/{unit-name}/nfr-requirements/</td><td>nfr-requirements.md, tech-stack-decisions.md</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/{unit-name}/nfr-design/</td><td>nfr-design-patterns.md, logical-components.md</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/{unit-name}/infrastructure-design/</td><td>infrastructure-design.md, deployment-architecture.md</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/{unit-name}/code/</td><td>Resumos markdown do código gerado (código real fica na raiz do projeto)</td></tr>
+        <tr class="construct-row"><td>aidlc-docs/construction/build-and-test/</td><td>build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, contract-test-instructions.md, security-test-instructions.md, e2e-test-instructions.md, build-and-test-summary.md</td></tr>
+        <tr class="ops-row"><td>aidlc-docs/operations/</td><td>Placeholder para artefatos futuros de Operations</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- References -->
+  <div class="section" id="references">
+    <h2 class="phase-title dark">9. Referências</h2>
+    <ul style="padding-left:24px; line-height:2.2; font-size:14px;">
+      <li><a href="https://github.com/awslabs/aidlc-workflows" target="_blank">Repositório GitHub: awslabs/aidlc-workflows</a></li>
+      <li><a href="https://prod.d13rzhkk8cj2z0.amplifyapp.com/" target="_blank">Method Definition Paper (Amplify App)</a></li>
+      <li><a href="https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/" target="_blank">AWS Blog — AI-DLC Methodology</a></li>
+      <li><a href="https://aws.amazon.com/blogs/devops/open-sourcing-adaptive-workflows-for-ai-driven-development-life-cycle-ai-dlc/" target="_blank">AWS Blog — Open-sourcing AI-DLC</a></li>
+      <li><a href="https://aws.amazon.com/blogs/devops/building-with-ai-dlc-using-amazon-q-developer/" target="_blank">AWS Blog — Building with AI-DLC using Amazon Q Developer</a></li>
+    </ul>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <p><strong>AI-DLC — AI-Driven Development Life Cycle</strong> &nbsp;|&nbsp; Fonte: <a href="https://github.com/awslabs/aidlc-workflows">github.com/awslabs/aidlc-workflows</a> &nbsp;|&nbsp; Documento gerado em Maio 2026</p>
+</footer>
+
+</body>
+</html>
