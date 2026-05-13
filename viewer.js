@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (typeof window.AIDLC_MANIFEST === "undefined"){
     showError("manifest.js not found",
-      "Run the generator first:<br><code>python aidlc-docs/_docs-viewer/generate-manifest.py</code>");
+      "Start the server first:<br><code>python save-server.py --watch</code><br>or<br><code>npm start</code>");
     return;
   }
   const M = window.AIDLC_MANIFEST;

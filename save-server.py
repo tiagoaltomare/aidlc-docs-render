@@ -358,10 +358,10 @@ def _resolve_docs_dir(args) -> Path:
 
     if args.pick:
         chosen = _pick_folder_dialog(initial_dir=str(default_dir))
-        if not chosen:
-            print("❌  Nenhuma pasta selecionada.", file=sys.stderr)
-            sys.exit(1)
-        return Path(chosen).resolve()
+        if chosen:
+            return Path(chosen).resolve()
+        # Dialog failed or was dismissed — fall through to other resolution methods
+        print("⚠  Seletor de pasta não disponível, usando fallback.", file=sys.stderr)
 
     if args.docs_root:
         candidate = Path(args.docs_root)
