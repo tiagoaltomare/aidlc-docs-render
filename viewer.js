@@ -71,40 +71,140 @@ function parseAidlcStatus(files){
   const stateFile = files.find(f=>f.path==="aidlc-state.md");
   if (!stateFile?.content) return null;
   const c = stateFile.content;
+  const currentPhaseRaw = c.match(/-\s+\*\*Current Phase\*\*:\s*(.+)/i)?.[1]?.trim() || "";
   const currentRaw = c.match(/-\s+\*\*Current Stage\*\*:\s*(.+)/i)?.[1]?.trim() || "";
+  const skipped = parseSkippedStages(c);
   const phases = parseStageProgress(c);
+  const constructionBolts = parseConstructionBoltProgress(c);
   for (const [k,defaults] of Object.entries(AIDLC_STAGE_ORDER)){
-    if (!phases[k]) phases[k] = defaults.map(label=>({label,status:"pending"}));
-    else {
-      const seen = new Set(phases[k].map(i=>i.label.toLowerCase()));
-      for (const l of defaults) if (!seen.has(l.toLowerCase())) phases[k].push({label:l,status:"pending"});
-    }
+    const byLabel = new Map((phases[k] || []).map(stage=>[stage.label.toLowerCase(), stage.status]));
+    phases[k] = defaults.map(label=>{
+      const status = byLabel.get(label.toLowerCase()) || (skipped[k]?.has(label.toLowerCase()) ? "skipped" : "pending");
+      return { label, status };
+    });
   }
-  return { currentStageRaw: currentRaw, current: parseCurrentStage(currentRaw, phases), phases };
+  return {
+    currentStageRaw: currentRaw,
+    currentPhaseRaw,
+    current: parseCurrentStage(currentRaw, phases, normalizePhaseKey(currentPhaseRaw)),
+    phases,
+    constructionBolts
+  };
 }
+
+function parseSkippedStages(content){
+  const skipped = {};
+  const raw = content.match(/-\s+\*\*Stages to Skip\*\*:\s*(.+)/i)?.[1]?.trim() || "";
+  if (!raw) return skipped;
+  for (const [phaseKey, defaults] of Object.entries(AIDLC_STAGE_ORDER)){
+    const set = new Set();
+    for (const label of defaults){
+      if (new RegExp(`\\b${escRx(label)}\\b`, "i").test(raw)) set.add(label.toLowerCase());
+    }
+    if (set.size) skipped[phaseKey] = set;
+  }
+  return skipped;
+}
+
 function parseStageProgress(content){
   const phases = {};
-  let cur = null;
+  let section = null;
   for (const line of String(content||"").split("\n")){
-    const pm = /^###\s+.*?(INCEPTION|CONSTRUCTION|OPERATIONS)\s+PHASE\s*$/i.exec(line.trim());
-    if (pm){ cur = normalizePhaseKey(pm[1]); phases[cur] = phases[cur]||[]; continue; }
-    if (/^##\s+/.test(line.trim())){ cur=null; continue; }
-    if (!cur) continue;
+    const trimmed = line.trim();
+    const phaseHeading = /^###\s+.*?(INCEPTION|CONSTRUCTION|OPERATIONS)\s+PHASE\s*$/i.exec(trimmed);
+    if (phaseHeading){
+      section = normalizePhaseKey(phaseHeading[1]);
+      phases[section] = phases[section] || [];
+      continue;
+    }
+    const h2 = /^##\s+(.+?)\s*$/.exec(trimmed);
+    if (h2){
+      const title = h2[1].toLowerCase();
+      if (title === "stage progress") section = "stage-progress";
+      else if (title === "construction progress") section = "construction";
+      else section = null;
+      continue;
+    }
     const im = /^-\s+\[(x| )\]\s+(.+)$/i.exec(line);
     if (!im) continue;
     const checked = im[1].toLowerCase()==="x";
     const raw = im[2].trim();
     const skipped = /\bSKIP\b/i.test(raw);
-    const label = raw.replace(/\s*-\s*SKIP\s*$/i,"").trim();
-    phases[cur].push({label,status: checked?"completed":(skipped?"skipped":"pending")});
+    let phaseKey = null;
+    let label = raw.replace(/\s*-\s*SKIP\s*$/i,"").trim();
+
+    const explicitPhase = /^(INCEPTION|CONSTRUCTION|OPERATIONS)\s*-\s*(.+)$/i.exec(label);
+    if (explicitPhase){
+      phaseKey = normalizePhaseKey(explicitPhase[1]);
+      label = explicitPhase[2].trim();
+    } else if (section === "construction" || section === "inception" || section === "operations"){
+      phaseKey = section;
+    }
+    if (!phaseKey) continue;
+
+    label = canonicalStageLabel(label, phaseKey);
+    if (!label) continue;
+    phases[phaseKey] = phases[phaseKey] || [];
+    const existing = phases[phaseKey].find(stage=>stage.label.toLowerCase() === label.toLowerCase());
+    const nextStatus = checked ? "completed" : (skipped ? "skipped" : "pending");
+    if (existing){
+      if (existing.status !== "completed" || nextStatus === "completed") existing.status = nextStatus;
+    } else {
+      phases[phaseKey].push({ label, status: nextStatus });
+    }
   }
   return phases;
 }
-function parseCurrentStage(raw, phases){
+
+function parseConstructionBoltProgress(content){
+  const bolts = new Map();
+  let inConstruction = false;
+  for (const line of String(content || "").split("\n")){
+    const trimmed = line.trim();
+    const h2 = /^##\s+(.+?)\s*$/.exec(trimmed);
+    if (h2){
+      inConstruction = h2[1].toLowerCase() === "construction progress";
+      continue;
+    }
+    if (!inConstruction) continue;
+    const im = /^-\s+\[(x| )\]\s+(.+)$/i.exec(line);
+    if (!im) continue;
+    const checked = im[1].toLowerCase() === "x";
+    const raw = im[2].trim();
+    const skipped = /\bSKIP\b/i.test(raw);
+    const stageInfo = matchConstructionStage(raw);
+    const unitLabel = inferConstructionUnitFromRaw(raw);
+    if (!stageInfo || !unitLabel) continue;
+    const unitKey = normalizeKey(unitLabel);
+    if (!bolts.has(unitKey)) bolts.set(unitKey, new Map());
+    const stageStatus = checked ? "completed" : (skipped ? "skipped" : "pending");
+    const stageMap = bolts.get(unitKey);
+    const existing = stageMap.get(stageInfo.label);
+    if (existing !== "completed" || stageStatus === "completed"){
+      stageMap.set(stageInfo.label, stageStatus);
+    }
+  }
+  return bolts;
+}
+
+function canonicalStageLabel(raw, phaseKey){
+  const text = String(raw || "").trim();
+  const defaults = AIDLC_STAGE_ORDER[phaseKey] || [];
+  let matched = "";
+  for (const label of defaults){
+    const rx = new RegExp(`\\b${escRx(label)}\\b`, "i");
+    if (!rx.test(text)) continue;
+    if (label.length > matched.length) matched = label;
+  }
+  return matched || text;
+}
+
+function parseCurrentStage(raw, phases, hintedPhaseKey){
   if (!raw) return null;
   const parts = raw.split(/\s+-\s+/);
-  const phaseKey = normalizePhaseKey(parts[0]);
-  const remainder = parts.slice(1).join(" - ").trim();
+  const explicitPhaseKey = normalizePhaseKey(parts[0]);
+  const phaseKey = explicitPhaseKey || hintedPhaseKey || inferPhaseKeyFromRaw(raw);
+  const remainder = explicitPhaseKey ? parts.slice(1).join(" - ").trim() : raw;
   const stages = phaseKey ? (phases[phaseKey]||[]) : [];
   let matched = "", detail = remainder;
   for (const s of stages){
@@ -114,19 +214,217 @@ function parseCurrentStage(raw, phases){
     if (s.label.length <= matched.length) continue;
     matched = s.label;
     detail = remainder.slice(0,m.index).concat(remainder.slice(m.index+m[0].length))
+             .replace(/\s*-\s*-\s*/g, " - ")
              .replace(/^\s*[-:]+\s*|\s*[-:]+\s*$/g,"").trim();
   }
   return {
     phaseKey,
-    phaseLabel: phaseKey ? PHASE[phaseKey].label : parts[0],
+    phaseLabel: phaseKey ? PHASE[phaseKey].label : (explicitPhaseKey ? parts[0] : ""),
     stageLabel: matched || remainder || raw,
     detail: detail && detail !== matched ? detail : "",
   };
 }
+function inferPhaseKeyFromRaw(raw){
+  for (const [phaseKey, defaults] of Object.entries(AIDLC_STAGE_ORDER)){
+    for (const label of defaults){
+      if (new RegExp(`\\b${escRx(label)}\\b`, "i").test(raw)) return phaseKey;
+    }
+  }
+  return null;
+}
 function phaseCounts(stages){
   const total = stages.length;
-  const done = stages.filter(s=>s.status==="completed").length;
+  const done = stages.filter(s=>s.status==="completed" || s.status==="skipped").length;
   return { done, total, pct: total ? Math.round(done/total*100) : 0 };
+}
+
+function normalizeKey(raw){
+  return String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function getConstructionStageAliases(){
+  return {
+    "Functional Design": ["functional-design"],
+    "NFR Requirements": ["nfr-requirements"],
+    "NFR Design": ["nfr-design"],
+    "Infrastructure Design": ["infrastructure-design"],
+    "Code Generation": ["code-generation", "code"],
+    "Build and Test": ["build-and-test"],
+  };
+}
+
+function matchConstructionStage(text){
+  const haystack = normalizeKey(text);
+  const aliases = getConstructionStageAliases();
+  for (const label of AIDLC_STAGE_ORDER.construction){
+    const candidates = [label, ...(aliases[label] || [])];
+    for (const alias of candidates){
+      if (haystack.includes(normalizeKey(alias))) return { label, alias };
+    }
+  }
+  return null;
+}
+
+function inferConstructionUnitFromRaw(raw){
+  const stage = matchConstructionStage(raw);
+  if (!stage) return "";
+  return String(raw || "")
+    .replace(new RegExp(`\\s*-\\s*${escRx(stage.label)}\\b.*$`, "i"), "")
+    .trim();
+}
+
+function humanizeUnitLabel(raw){
+  return String(raw || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, c=>c.toUpperCase())
+    .trim();
+}
+
+function getConstructionFileInfo(file){
+  const path = file.path || "";
+  if (!path.startsWith("construction/")) return null;
+  const parts = path.split("/");
+  if (parts[1] === "plans"){
+    const filename = parts[2] || "";
+    const aliases = getConstructionStageAliases();
+    let stageLabel = "";
+    let matchedAlias = "";
+    for (const label of AIDLC_STAGE_ORDER.construction){
+      for (const alias of aliases[label] || []){
+        if (!filename.toLowerCase().includes(alias)) continue;
+        stageLabel = label;
+        matchedAlias = alias;
+        break;
+      }
+      if (stageLabel) break;
+    }
+    if (!stageLabel || !matchedAlias) return null;
+    const unitKey = filename.replace(new RegExp(`-${escRx(matchedAlias)}-plan\\.md$`, "i"), "");
+    return {
+      kind: "plan",
+      unitKey,
+      unitLabel: humanizeUnitLabel(unitKey),
+      stageLabel,
+    };
+  }
+  const unitKey = parts[1];
+  const stageLabel = matchConstructionStage(parts[2] || "")?.label || canonicalStageLabel(parts[2] || "", "construction");
+  return {
+    kind: "artifact",
+    unitKey,
+    unitLabel: humanizeUnitLabel(unitKey),
+    stageLabel,
+  };
+}
+
+function buildConstructionBolts(files, status){
+  const bolts = new Map();
+  const currentUnit = inferConstructionUnitFromRaw(status?.currentStageRaw || "");
+  const currentUnitKey = normalizeKey(currentUnit);
+  const currentStage = status?.current?.phaseKey === "construction" ? status.current.stageLabel : "";
+  const constructionBoltStatus = status?.constructionBolts || new Map();
+
+  function getBolt(unitKey, unitLabel){
+    const key = normalizeKey(unitKey || unitLabel);
+    if (!bolts.has(key)){
+      const stages = AIDLC_STAGE_ORDER.construction.map(label=>({
+        label,
+        status: "pending",
+        files: [],
+        hasArtifacts: false,
+      }));
+      bolts.set(key, { key, label: unitLabel || humanizeUnitLabel(unitKey), stages });
+    }
+    return bolts.get(key);
+  }
+
+  for (const file of files){
+    const info = getConstructionFileInfo(file);
+    if (!info?.unitKey) continue;
+    const bolt = getBolt(info.unitKey, info.unitLabel);
+    const stage = bolt.stages.find(s=>s.label === info.stageLabel);
+    if (!stage) continue;
+    stage.files.push(file);
+    if (info.kind === "artifact") stage.hasArtifacts = true;
+  }
+
+  if (currentUnit){
+    getBolt(currentUnit, currentUnit);
+  }
+
+  for (const bolt of bolts.values()){
+    const isCurrentBolt = normalizeKey(bolt.label) === currentUnitKey || normalizeKey(bolt.key) === currentUnitKey;
+    const boltStatus = constructionBoltStatus.get(bolt.key) || new Map();
+    for (const stage of bolt.stages){
+      if (boltStatus.has(stage.label)){
+        stage.status = boltStatus.get(stage.label);
+      } else if (stage.hasArtifacts) {
+        stage.status = "completed";
+      } else {
+        stage.status = "pending";
+      }
+      if (isCurrentBolt && currentStage && stage.label === currentStage) stage.status = "current";
+      stage.files = sortNavFiles(stage.files, "construction", stage.label);
+    }
+    bolt.counts = phaseCounts(bolt.stages.map(stage=>({ status: stage.status === "current" ? "pending" : stage.status })));
+    bolt.currentStage = bolt.stages.find(stage=>stage.status === "current")?.label || "";
+  }
+
+  return [...bolts.values()].sort((a,b)=>a.label.localeCompare(b.label));
+}
+
+function sortNavFiles(files, phase, sec){
+  return [...files].sort((a,b)=>{
+    const ao = navFileOrder(a, phase, sec);
+    const bo = navFileOrder(b, phase, sec);
+    if (ao !== bo) return ao - bo;
+    const ar = navFileRank(a);
+    const br = navFileRank(b);
+    if (ar !== br) return ar - br;
+    return a.title.localeCompare(b.title) || a.path.localeCompare(b.path);
+  });
+}
+
+function navFileOrder(file, phase, sec){
+  if (sec !== "plans") return 999;
+  if (phase === "inception") return stageFileOrder(file, phase, {
+    "workspace detection": ["workspace-detection"],
+    "reverse engineering": ["reverse-engineering"],
+    "requirements analysis": ["requirements-analysis"],
+    "user stories": ["user-stories", "story-generation", "stories-assessment", "user-stories-assessment"],
+    "workflow planning": ["workflow-planning", "execution-plan"],
+    "application design": ["application-design"],
+    "units planning": ["units-planning"],
+    "units generation": ["units-generation", "unit-of-work", "clarification"],
+  });
+  if (phase === "construction") return stageFileOrder(file, phase, {
+    "functional design": ["functional-design"],
+    "nfr requirements": ["nfr-requirements"],
+    "nfr design": ["nfr-design"],
+    "infrastructure design": ["infrastructure-design"],
+    "code generation": ["code-generation"],
+    "build and test": ["build-and-test"],
+  });
+  return 999;
+}
+
+function stageFileOrder(file, phase, aliasesByStage){
+  const haystack = `${file.path} ${file.title}`.toLowerCase();
+  const stageOrder = AIDLC_STAGE_ORDER[phase] || [];
+  for (let i = 0; i < stageOrder.length; i++){
+    const stage = stageOrder[i];
+    const aliases = aliasesByStage[stage.toLowerCase()] || [stage.toLowerCase()];
+    if (aliases.some(alias=>haystack.includes(alias))) return i;
+  }
+  return stageOrder.length + 100;
+}
+
+function navFileRank(file){
+  const haystack = `${file.path} ${file.title}`.toLowerCase();
+  if (haystack.includes("assessment")) return 0;
+  if (haystack.includes("-plan")) return 1;
+  if (haystack.includes("clarification")) return 2;
+  return 3;
 }
 
 // ─── Pending [Answer] marker counts ────────────────────────────────────────
@@ -272,10 +570,12 @@ function renderPhaseRail(){
 // ─── NAVIGATION ────────────────────────────────────────────────────────────
 function renderNav(){
   const groups = {};
+  const phaseFiles = {};
   for (const f of state.files){
     const parts = f.path.split("/");
     const phase = parts.length===1 ? "overview" : parts[0];
     if (state.phaseFilter!=="all" && phase!==state.phaseFilter) continue;
+    (phaseFiles[phase] = phaseFiles[phase] || []).push(f);
     const sec = parts.length>=3 ? parts[1] : "__root__";
     const sub = parts.length>=4 ? parts[2] : "__root__";
     (groups[phase] = groups[phase]||{});
@@ -286,11 +586,11 @@ function renderNav(){
   nav.innerHTML = "";
   const order = ["overview","inception","construction","operations","other"];
   const phases = [...new Set([...order, ...Object.keys(groups)])].filter(p=>groups[p]);
-  for (const p of phases) nav.appendChild(buildPhaseEl(p, groups[p]));
+  for (const p of phases) nav.appendChild(buildPhaseEl(p, groups[p], phaseFiles[p] || []));
   highlightActive();
 }
 
-function buildPhaseEl(phase, sections){
+function buildPhaseEl(phase, sections, files){
   const wrap = document.createElement("div");
   wrap.className = "nav-phase";
   wrap.dataset.phase = phase;
@@ -315,6 +615,11 @@ function buildPhaseEl(phase, sections){
   bd.className = "nav-phase-bd";
   wrap.appendChild(bd);
 
+  if (phase === "construction"){
+    buildConstructionPhaseBody(bd, files);
+    return wrap;
+  }
+
   const root = sections["__root__"];
   if (root && root["__root__"]) for (const f of root["__root__"]) bd.appendChild(makeItem(f));
 
@@ -322,12 +627,81 @@ function buildPhaseEl(phase, sections){
   const secKeys = [...new Set([...secOrder, ...Object.keys(sections).filter(s=>s!=="__root__")])];
   for (const sec of secKeys){
     if (!sections[sec]) continue;
-    bd.appendChild(buildSectionEl(sec, sections[sec]));
+    bd.appendChild(buildSectionEl(phase, sec, sections[sec]));
   }
   return wrap;
 }
 
-function buildSectionEl(sec, subsections){
+function buildConstructionPhaseBody(container, files){
+  const bolts = buildConstructionBolts(files, state.status);
+  const phasePlans = files.filter(f=>f.path.startsWith("construction/plans/"));
+  if (phasePlans.length){
+    const plansByUnit = {};
+    for (const file of phasePlans){
+      const info = getConstructionFileInfo(file);
+      if (!info?.unitKey) continue;
+      (plansByUnit[info.unitKey] = plansByUnit[info.unitKey] || []).push(file);
+    }
+    if (!Object.keys(plansByUnit).length){
+      const pseudo = { "__root__": phasePlans };
+      container.appendChild(buildSectionEl("construction", "plans", pseudo));
+    }
+  }
+  for (const bolt of bolts){
+    container.appendChild(buildConstructionBoltEl(bolt));
+  }
+}
+
+function buildConstructionBoltEl(bolt){
+  const wrap = document.createElement("div");
+  wrap.className = "nav-bolt";
+  if (bolt.currentStage) wrap.classList.add("is-current");
+
+  const hd = document.createElement("div");
+  hd.className = "nav-bolt-hd";
+  hd.innerHTML =
+    `<span class="nav-bolt-mark">⚡</span>` +
+    `<span class="nav-bolt-label">${esc(bolt.label)}</span>` +
+    `<span class="nav-bolt-progress"><span class="nav-bolt-progress-fill" style="width:${bolt.counts.pct}%"></span></span>` +
+    `<span class="nav-bolt-meta">${bolt.counts.done}/${bolt.counts.total}</span>` +
+    `<span class="nav-bolt-arr"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>`;
+  hd.onclick = ()=> wrap.classList.toggle("closed");
+  wrap.appendChild(hd);
+
+  const bd = document.createElement("div");
+  bd.className = "nav-bolt-bd";
+  wrap.appendChild(bd);
+
+  for (const stage of bolt.stages){
+    bd.appendChild(buildConstructionStageEl(stage));
+  }
+  return wrap;
+}
+
+function buildConstructionStageEl(stage){
+  const wrap = document.createElement("div");
+  wrap.className = `nav-sec nav-stage nav-stage-${stage.status}`;
+  if (!stage.files.length && stage.status !== "current") wrap.classList.add("closed");
+
+  const hd = document.createElement("div");
+  hd.className = "nav-sec-hd";
+  hd.style.paddingLeft = "36px";
+  hd.innerHTML =
+    `<span class="nav-sec-arr"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>` +
+    `<span class="nav-stage-state"></span>` +
+    `<span>${esc(stage.label)}</span>` +
+    `<span class="nav-stage-meta">${stage.files.length ? `${stage.files.length} file${stage.files.length>1?"s":""}` : stage.status}</span>`;
+  hd.onclick = ()=> wrap.classList.toggle("closed");
+  wrap.appendChild(hd);
+
+  const bd = document.createElement("div");
+  bd.className = "nav-sec-bd";
+  for (const file of stage.files) bd.appendChild(makeItem(file));
+  wrap.appendChild(bd);
+  return wrap;
+}
+
+function buildSectionEl(phase, sec, subsections){
   const wrap = document.createElement("div");
   wrap.className = "nav-sec";
   wrap.dataset.section = sec;
@@ -341,7 +715,11 @@ function buildSectionEl(sec, subsections){
   const bd = document.createElement("div");
   bd.className = "nav-sec-bd";
   wrap.appendChild(bd);
-  if (subsections["__root__"]) for (const f of subsections["__root__"]) bd.appendChild(makeItem(f));
+  if (subsections["__root__"]){
+    for (const f of sortNavFiles(subsections["__root__"], phase, sec)) {
+      bd.appendChild(makeItem(f));
+    }
+  }
   for (const [sub,files] of Object.entries(subsections)){
     if (sub==="__root__") continue;
     const subWrap = document.createElement("div");
@@ -356,7 +734,7 @@ function buildSectionEl(sec, subsections){
     subWrap.appendChild(subHd);
     const subBd = document.createElement("div");
     subBd.className = "nav-sec-bd";
-    for (const f of files) subBd.appendChild(makeItem(f));
+    for (const f of sortNavFiles(files, phase, sec)) subBd.appendChild(makeItem(f));
     subWrap.appendChild(subBd);
     bd.appendChild(subWrap);
   }
@@ -529,6 +907,7 @@ async function renderDoc(file){
   if (docBody && answerFields.length > 0){
     const cnt = processAnswerMarkers(docBody, file, answerFields);
     if (cnt > 0){
+      panel.querySelector(".doc-hdr").classList.add("has-answers");
       const actions = panel.querySelector(".doc-actions");
       const btn = document.createElement("button");
       btn.className = "doc-action-btn primary";
@@ -541,7 +920,7 @@ async function renderDoc(file){
   }
 
   renderBreadcrumbs(file);
-  document.getElementById("content-wrap").scrollTo({top:0});
+  document.getElementById("doc-panel").scrollTo({top:0});
   buildTOC(panel);
   state.lastRender = Date.now();
 }
@@ -664,7 +1043,7 @@ function buildTOC(panel){
 
 let _scrollSpyRaf = null;
 function bindNavScrollSpy(){
-  const wrap = document.getElementById("content-wrap");
+  const wrap = document.getElementById("doc-panel");
   wrap.addEventListener("scroll", ()=>{
     if (_scrollSpyRaf) cancelAnimationFrame(_scrollSpyRaf);
     _scrollSpyRaf = requestAnimationFrame(()=>{
@@ -681,7 +1060,7 @@ function bindNavScrollSpy(){
 }
 
 function bindReadProgress(){
-  const wrap = document.getElementById("content-wrap");
+  const wrap = document.getElementById("doc-panel");
   const bar = document.getElementById("read-progress-bar");
   wrap.addEventListener("scroll", ()=>{
     const max = wrap.scrollHeight - wrap.clientHeight;
@@ -729,7 +1108,7 @@ function renderGuide(){
     <div id="guide-host" class="guide-host"><div class="guide-loading"><div class="spinner"></div><span>Loading guide…</span></div></div>
   `;
   loadGuideShadow();
-  document.getElementById("content-wrap").scrollTo({top:0});
+  document.getElementById("doc-panel").scrollTo({top:0});
 }
 
 async function loadGuideShadow(){
@@ -776,7 +1155,7 @@ async function loadGuideShadow(){
         const target = shadow.getElementById(id) || shadow.querySelector(`[id="${id}"]`);
         if (target){
           e.preventDefault();
-          const wrap = document.getElementById("content-wrap");
+          const wrap = document.getElementById("doc-panel");
           const r = target.getBoundingClientRect();
           const hr = host.getBoundingClientRect();
           wrap.scrollTo({ top: wrap.scrollTop + r.top - hr.top - 60, behavior:"smooth" });
@@ -860,6 +1239,7 @@ function renderDashboard(){
 
   const recent = [...state.files].slice(0,8);
   const pendingDocs = state.files.filter(f=>countPending(f)>0).slice(0,5);
+  const constructionBolts = buildConstructionBolts(state.files.filter(f=>f.phase==="construction"), status);
 
   panel.innerHTML = `
     <div class="home-tabs">
@@ -901,6 +1281,16 @@ function renderDashboard(){
         </div>
       </section>` : ""}
 
+      ${constructionBolts.length ? `<section class="dash-section">
+        <div class="dash-section-hd">
+          <div class="dash-section-title">Construction Bolts</div>
+          <div class="dash-section-rule"></div>
+        </div>
+        <div class="dash-bolts">
+          ${constructionBolts.map(renderBoltCard).join("")}
+        </div>
+      </section>` : ""}
+
       <section class="dash-focus">
         <div class="dash-card">
           <div class="dash-card-title" style="--ph-color:${phaseColorVar(curKey)}">
@@ -933,7 +1323,7 @@ function renderDashboard(){
       </section>
     </div>
   `;
-  document.getElementById("content-wrap").scrollTo({top:0});
+  document.getElementById("doc-panel").scrollTo({top:0});
 }
 
 function renderPhaseCard(key, stages, current){
@@ -954,6 +1344,31 @@ function renderPhaseCard(key, stages, current){
         const isCur = isCurrent && current.stageLabel.toLowerCase() === s.label.toLowerCase();
         const cls = isCur ? "is-current" : (s.status==="completed"?"is-done":(s.status==="skipped"?"is-skipped":""));
         return `<div class="dash-stage ${cls}"><span class="dash-stage-mark"></span><span class="dash-stage-label">${esc(s.label)}</span></div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function renderBoltCard(bolt){
+  const cardClass = bolt.currentStage ? "is-current" : (bolt.counts.pct === 100 ? "is-done" : "");
+  return `<div class="dash-bolt-card ${cardClass}">
+    <div class="dash-bolt-hd">
+      <div class="dash-bolt-mark">⚡</div>
+      <div class="dash-bolt-copy">
+        <div class="dash-bolt-name">${esc(bolt.label)}</div>
+        <div class="dash-bolt-sub">${bolt.currentStage ? `Current stage: ${esc(bolt.currentStage)}` : `${bolt.counts.done} of ${bolt.counts.total} stages complete`}</div>
+      </div>
+      <div class="dash-bolt-pct">${bolt.counts.pct}%</div>
+    </div>
+    <div class="dash-phase-bar"><div class="dash-phase-bar-fill" style="width:${bolt.counts.pct}%"></div></div>
+    <div class="dash-stages">
+      ${bolt.stages.map(stage=>{
+        const cls = stage.status==="current" ? "is-current" : (stage.status==="completed" ? "is-done" : (stage.status==="skipped" ? "is-skipped" : ""));
+        return `<div class="dash-stage ${cls}">
+          <span class="dash-stage-mark"></span>
+          <span class="dash-stage-label">${esc(stage.label)}</span>
+          <span class="dash-bolt-stage-meta">${stage.files.length ? `${stage.files.length} file${stage.files.length>1?"s":""}` : ""}</span>
+        </div>`;
       }).join("")}
     </div>
   </div>`;
